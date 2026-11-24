@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vanguard Champions: The Complete Chronicles</title><link rel="stylesheet" href="styles/launcher.css"></head>
+<body><header class="topbar"><div class="brand">VANGUARD // CHRONICLES</div><div class="top-actions">
+<button id="codexBtn">Lore Codex</button><button id="saveBtn">Save Manager</button><button id="settingsBtn">Settings</button></div></header>
+<section class="hero"><canvas id="particles"></canvas><div class="hero-inner"><h1>VANGUARD CHAMPIONS</h1><p>THE COMPLETE CHRONICLES</p></div></section>
+<main><div class="toolbar"><div class="filters"><button class="active" data-filter="chronology">Chronological</button><button data-filter="original">Original 7 + 6 Expansions</button></div><div class="completion">Franchise completion <strong id="completion">0%</strong></div></div><section id="gameGrid" class="grid"></section></main>
+<script type="module">
+import { loreData } from './shared/loreData.js';
+import { loadSave, writeSave, exportSave, importSave, defaultSave } from './shared/saveManager.js';
+import { modal } from './shared/uiComponents.js';
+const games=[
+['01-first-descent','The First Descent','Age of Primordials','Tactical Squad-Defense','#bc7049','#352543'],
+['02-shattered-crown','Shattered Crown','Age of Ancients','Tactical Squad-Defense','#b88cff','#38234f'],
+['03-crystal-sundering','The Crystal Sundering','Age of Ancients','Tactical Squad-Defense','#77d7d0','#2c4867'],
+['04-eclipse-of-the-ancients','Eclipse of the Ancients','Age of Ancients','Tactical Squad-Defense','#edc96d','#3d2a67'],
+['05-crimson-dawn','Crimson Dawn','Age of Kings','Tactical Squad-Defense','#d95a43','#452a2e'],
+['06-eastern-reckoning','Eastern Reckoning','Age of Kings','Tactical Squad-Defense','#df994d','#57312c'],
+['07-vanguard-champions','Vanguard Champions','Primordial Usurping','Tactical Squad-Defense','#7ba6ca','#263654'],
+['08-wildlands','Wildlands','Primordial Usurping','Tactical Squad-Defense','#75a45a','#33492f'],
+['09-depths-rising','Depths Rising','Primordial Usurping','Tactical Squad-Defense','#48b6bf','#213e62'],
+['10-skyreach','Skyreach','Primordial Usurping','Tactical Squad-Defense','#87b8cf','#465478'],
+['11-maelstrom','Maelstrom','Primordial Usurping','Tactical Squad-Defense','#a276e6','#263c75'],
+['12-rebirth','Rebirth','Age of Rebirth','Action-Adventure RPG','#9bd6b1','#4d4377'],
+['13-apocalypse','Apocalypse','The Apocalypse','Tactical Finale','#e2c66d','#6d3158']
+];
+let save=loadSave();
+function render(){
+ const grid=document.querySelector('#gameGrid');grid.innerHTML='';
+ games.forEach((g,i)=>{
+  const gs=save.games[i+1]||{completedStages:[],endings:[]};const stages=i===6||i===7||i===9?6: i===11?5: i===12?6: i===11?5:5;
+  const pct=Math.round((gs.completedStages?.length||0)/stages*100);
+  const card=document.createElement('article');card.className='card';card.style.setProperty('--c1',g[4]);card.style.setProperty('--c2',g[5]);
+  card.innerHTML=`<div class="cover"><span class="era">${g[2]}</span></div><div class="card-body"><h2>${g[1]}</h2><div class="genre">${g[3]}</div><div class="progress"><i style="width:${pct}%"></i></div><div class="card-foot"><small>${gs.completedStages?.length||0}/${stages} stages</small><a href="games/${g[0]}/index.html">PLAY</a></div></div>`;
+  grid.appendChild(card);
+ });
+ let completed=0,total=0;Object.values(save.games).forEach((g,i)=>{const stages=i===6||i===7||i===9||i===12?6:i===11?5:5;completed+=g.completedStages?.length||0;total+=stages});
+ document.querySelector('#completion').textContent=Math.round(completed/total*100)+'%';
+}
+render();
+document.querySelectorAll('.filters button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');render();});
+document.querySelector('#codexBtn').onclick=()=>modal('The Records of All Time', loreData.map(x=>`<details><summary><strong>${x.era}: ${x.title}</strong></summary><p>${x.text}</p></details>`).join());
+document.querySelector('#saveBtn').onclick=()=>modal('Franchise Save Manager','<p>Export a portable, integrity-checked save or import a previously exported one.</p>',[
+{label:'Export .json',primary:true,action:()=>exportSave(save)},
+{label:'Import .json',action:()=>{const input=document.createElement('input');input.type='file';input.accept='.json';input.onchange=async()=>{try{save=await importSave(input.files[0]);writeSave(save);render();modal('Save imported','Your franchise progress is restored.')}catch(e){modal('Import rejected',e.message)}};input.click()}},
+{label:'Reset Save',action:()=>modal('Reset all progress?','This cannot be undone.',[{label:'Cancel'},{label:'Reset permanently',primary:true,action:()=>{save=defaultSave();writeSave(save);render();}}])}
+]);
+document.querySelector('#settingsBtn').onclick=()=>{
+ const s=save.settings;modal('Audio & Accessibility',`<label>Master <input id="master" type="range" min="0" max="1" step=".05" value="${s.master}"></label><br><label>SFX <input id="sfx" type="range" min="0" max="1" step=".05" value="${s.sfx}"></label><br><label>Music <input id="music" type="range" min="0" max="1" step=".05" value="${s.music}"></label><br><label><input id="auto" type="checkbox" ${s.autoPause?'checked':''}> Tactical auto-pause</label><br><label><input id="contrast" type="checkbox" ${s.highContrast?'checked':''}> High-contrast telegraphs</label>`,[
+ {label:'Save settings',primary:true,action:()=>{save.settings={master:+document.querySelector('#master').value,sfx:+document.querySelector('#sfx').value,music:+document.querySelector('#music').value,autoPause:document.querySelector('#auto').checked,highContrast:document.querySelector('#contrast').checked};writeSave(save);}}
+ ]);
+};
+const c=document.querySelector('#particles'),p=c.getContext('2d');function particles(){const r=c.getBoundingClientRect();c.width=r.width;c.height=r.height;const a=Array.from({length:55},(_,i)=>({x:(i*173)%r.width,y:(i*97)%r.height,v:.12+(i%5)*.08,c:i%3?'#9b74ff':'#efc96d'}));function draw(t){p.clearRect(0,0,c.width,c.height);for(const q of a){q.y-=q.v;if(q.y<0)q.y=c.height;p.fillStyle=q.c;p.globalAlpha=.25+(Math.sin(t*.001+q.x)*.25);p.beginPath();p.arc(q.x,q.y,1.5,0,7);p.fill()}p.globalAlpha=1;requestAnimationFrame(draw)}requestAnimationFrame(draw)}particles();
+</script></body></html>

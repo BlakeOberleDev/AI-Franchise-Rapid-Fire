@@ -1,0 +1,380 @@
+================================================================================
+MASTER AUTONOMOUS DEVELOPMENT PROMPT:
+THE VANGUARD CHAMPIONS FRANCHISE (13-GAME STATIC WEB COLLECTION)
+================================================================================
+
+ROLE & MISSION
+You are an autonomous Principal Game Engineer, Systems Designer, Technical Artist, and Audio Programmer. Your mission is to design, architect, code, test, and polish the ENTIRE 13-game "Vanguard Champions" franchise as a 100% browser-playable, statically hosted web application ready for immediate deployment on GitHub Pages.
+
+You have full creative and technical autonomy to execute this entire project from scratch, provided you strictly obey every architectural rule, gameplay pillar, lore requirement, and legal asset policy defined in this specification.
+
+NON-NEGOTIABLE DELIVERABLE RULES
+1. ALL 13 GAMES MUST BE COMPLETE AND PLAYABLE IN FULL. No "Coming Soon" placeholders, no stubbed levels, no missing bosses, no dead buttons.
+2. STATIC GITHUB PAGES READY. Zero backend servers, zero databases, zero paid APIs, and zero mandatory build steps (use clean, modular vanilla HTML5, CSS3, and ES6+ JavaScript Modules with HTML5 Canvas 2D and Web Audio API so dropping the repo onto GitHub Pages works immediately).
+3. UNIFIED LAUNCHER (`index.html`). A rich, atmospheric franchise hub at the root `index.html` where players can browse all 13 games chronologically or by era, read the interactive Lore Codex ("The Records of All Time"), inspect completion progress, manage saves, and launch any game seamlessly.
+4. PERSISTENT LOCAL STORAGE SAVING. Full `localStorage` persistence across all 13 games and the launcher, including JSON export/import with checksum anti-tamper protection.
+5. 100% LEGALLY CLEAN ASSETS. Every sprite, tileset, animation frame, portrait, UI element, sound effect, and music track MUST be either:
+   (a) 100% procedurally generated in-code (RECOMMENDED: offscreen HTML5 Canvas spritesheet generators + SVG vector UI + Web Audio API procedural synthesizer/sequencer), OR
+   (b) Taken strictly from verified CC0 / Public Domain sources with a complete `CREDITS_AND_LICENSES.md` file documenting every asset.
+   NEVER scrape copyrighted assets, NEVER use watermarked art, and NEVER hotlink external image/audio URLs that could break or violate licensing. Procedural spritesheet rendering + Web Audio synthesis guarantees 100% ownership, zero 404s, instant loading, and a cohesive pixel-art/stylized-2D aesthetic across all 13 titles.
+
+================================================================================
+SECTION 1: CORE FRANCHISE GAMEPLAY PILLARS
+================================================================================
+
+Eleven of the thirteen games (Games 1–6, 7–11, and 13) are built on the signature VANGUARD CHAMPIONS TACTICAL ENGINE—a blend of Kingdom Rush lane-defense and Battleheart real-time squad micro-management. Game 12 (Rebirth) uses a dedicated TOP-DOWN ACTION-ADVENTURE RPG ENGINE (and Game 1 / Game 13 extend the tactical engine with unique era mechanics).
+
+Every tactical Vanguard Champions game MUST strictly implement these four pillars:
+
+1. SQUAD & UNIT CONTROL (Battleheart-Style Micro)
+   - 6-Hero Squad: Before each stage, the player selects a customizable squad of 6 heroes from that game's roster (each hero has a distinct role: Tank, Bruiser, Ranger/Archer, Mage, Healer/Cleric, Assassin/Specialist, plus 1–2 active cooldown skills and 1 passive).
+   - Movable Expendable Troops: Alongside the 6 heroes, players deploy act-specific, expendable default troops (e.g., Pikemen, Archers, Elven Swordsmen, Dwarven Deep-Wardens, Ancient Mystics, etc.) via battlefield reinforcement cooldowns or gold/energy. Unlike traditional tower defense barracks units tethered to a rally flag, these troops are 100% FREELY MOVABLE anywhere across the map via click-drag or select-and-move, just like heroes.
+   - Respawn Timers (No Permadeath): When a hero's HP reaches 0, they do not die permanently. They enter a punishing respawn timer (e.g., 15–25 seconds, scaling slightly with wave tension) at the rally point. Losing a main tank or healer creates a dramatic tempo swing rather than an instant game over.
+   - Controls: Intuitive mouse drag-from-unit-to-destination (Battleheart style) AND click-to-select + right-click/click-to-move, plus drag-box multi-select, hotkeys `1`–`6` for heroes, `Q`/`W`/`E` for active skills, `Space` for tactical pause/slow-motion (crucial for browser playability), and full touch-event support for mobile/tablet browsers.
+
+2. ZERO-DAMAGE SUPPORT TOWERS
+   - 3-Tower Loadout: Before each stage, the player picks a loadout of 3 support tower types (from 5–6 unlocked/available options per game) to construct on tactical build pads along the lanes.
+   - STRICT ZERO-DAMAGE RULE: Towers NEVER deal direct HP damage to enemies. They are pure force multipliers. Your 6 heroes and movable expendable troops do 100% of the killing.
+   - Support Tower Functions:
+     * Ally Buffs: Attack speed aura, armor/shield ward, healing beacon, cooldown-haste obelisk, troop-rally speed banner.
+     * Enemy Debuffs: Frost/mud slow field, armor-shredding hex spire, damage-amplification curse, silence/anti-caster obelisk, blind/miss cloud.
+     * Space & Flow Control: Physical choke-point barricade/wall, knockback/repulsion pulse pylon, ally teleport/warp pad, stealth-reveal watchtower.
+   - Upgrades: Towers can be upgraded (Tier 1 -> Tier 2 -> Tier 3) during a stage using wave gold to increase radius, potency, or unlock secondary utility effects—still dealing zero direct damage.
+
+3. COMBAT & ANTI-UNIT ENEMY COUNTERPLAY
+   - Dedicated Anti-Unit Archetypes: Enemy waves MUST include specialized units designed to punish static clumping and shred unattended expendable troops:
+     * Cleavers / Siege Crushers: Heavy telegraphing AoE slams that devastate tightly clumped squads—forcing players to split and reposition.
+     * Shredders / Piercers: Fast multi-hit or piercing-line enemies that melt expendable frontline troops if tanks/control towers don't intercept them.
+     * Backline Divers / Assassins / Leap-Beasts: Bypass the front line to hunt healers and mages, forcing active peeling.
+     * Disruptors / Casters: Silence heroes, buff enemy armor, or drop ground hazard zones that force constant movement.
+   - Telegraphing: All major enemy AoE attacks and boss abilities MUST display crisp ground telegraphs (red/amber circles, cones, or lines) with a 1.0–1.8s windup so skilled players can dodge by dragging units out of danger.
+
+4. FLAT PROGRESSION (NO STAR-UPGRADE TREES)
+   - Do NOT implement grindy meta-progression star-upgrade trees (+5% HP, +10% damage, etc.).
+   - Stage balance must remain tight, flat, and skill-based around hero kit synergies, troop positioning, active ability timing, and 3-tower support loadouts.
+   - Progression across a campaign unlocks new heroes, new support tower types, act-specific troop types, and Lore Codex entries—never raw stat inflation.
+
+================================================================================
+SECTION 2: TECHNICAL ARCHITECTURE & REPOSITORY STRUCTURE
+================================================================================
+
+Build the repository with this clean, modular static layout:
+
+/
+├── index.html                          # Unified Franchise Launcher & Lore Codex
+├── styles/
+│   └── launcher.css                    # Franchise hub styling (responsive, atmospheric)
+├── CREDITS_AND_LICENSES.md             # Legal asset verification manifest
+├── README.md                           # Deployment & controls guide for GitHub Pages
+├── shared/
+│   ├── saveManager.js                  # localStorage persistence, JSON export/import, SHA-256 checksum anti-tamper
+│   ├── audioEngine.js                  # Web Audio API procedural SFX & adaptive chiptune/orchestral synth music
+│   ├── spriteGenerator.js              # Procedural offscreen-canvas spritesheet & animation generator (heroes, troops, enemies, towers, tiles, VFX)
+│   ├── loreData.js                     # Full structured "Records of All Time" codex & timeline metadata
+│   ├── tacticalEngine.js               # Core Vanguard Champions 6-Hero + Movable Troops + Zero-Damage Support Tower engine
+│   ├── adventureEngine.js              # Top-down 2D Action-Adventure RPG engine (used by Game 12: Rebirth)
+│   └── uiComponents.js                 # Shared HUD, Squad Selector, Tower Loadout Picker, Pause/Victory/Defeat modals
+└── games/
+    ├── 01-first-descent/               # Game 1: The First Descent (Age of Primordials)
+    ├── 02-shattered-crown/             # Game 2: Shattered Crown (Age of Ancients)
+    ├── 03-crystal-sundering/           # Game 3: The Crystal Sundering (Age of Ancients)
+    ├── 04-eclipse-of-the-ancients/     # Game 4: Eclipse of the Ancients (Age of Ancients)
+    ├── 05-crimson-dawn/                # Game 5: Crimson Dawn (Age of Kings — Original Prequel)
+    ├── 06-eastern-reckoning/           # Game 6: Eastern Reckoning (Age of Kings)
+    ├── 07-vanguard-champions/          # Game 7: Vanguard Champions (Primordial Usurping — Original #1)
+    ├── 08-wildlands/                   # Game 8: Wildlands (Primordial Usurping — Original #2)
+    ├── 09-depths-rising/               # Game 9: Depths Rising (Primordial Usurping — Original #4)
+    ├── 10-skyreach/                    # Game 10: Skyreach (Primordial Usurping — Original #5)
+    ├── 11-maelstrom/                   # Game 11: Maelstrom (Primordial Usurping — Original #6)
+    ├── 12-rebirth/                     # Game 12: Rebirth (Age of Rebirth — Original #7 Adventure RPG)
+    └── 13-apocalypse/                  # Game 13: Apocalypse (The Apocalypse — Grand Finale)
+
+Each game folder (`/games/XX-slug/`) contains:
+- `index.html` (standalone entry point that loads shared engines + game data, with a "Return to Launcher" button back to `../../index.html`)
+- `gameData.js` (complete data definition: heroes, movable troops, zero-damage support towers, enemy archetypes, bosses, 5–6 handcrafted campaign stages with custom map paths, build pads, wave scripts, and story dialogues)
+- `gameOverrides.js` (game-specific mechanics, custom map hazards, boss state machines, and visual shaders/particles)
+
+SAVE SYSTEM & ANTI-TAMPER SPECIFICATION (`shared/saveManager.js`)
+- Store unified franchise save data in `localStorage` under `vanguard_champions_franchise_v1`.
+- Track per-game: `unlockedStages`, `completedStages`, `bestScores`, `unlockedHeroes`, `unlockedCodexIds`, `gameSpecificFlags` (e.g., Rebirth inventory/crystals, Apocalypse endings unlocked).
+- Include a deterministic integrity hash (using Web Crypto `crypto.subtle.digest('SHA-256')` with an app salt, plus a synchronous fallback hash) stored alongside exported JSON saves so tampered JSON files are detected and flagged cleanly on import.
+
+PROCEDURAL SPRITESHEET & RENDERING SPECIFICATION (`shared/spriteGenerator.js`)
+- Pre-bake crisp pixel-art/stylized-2D spritesheets onto offscreen `<canvas>` elements at startup for every unit, tower, tile, and boss.
+- Each unit spritesheet must include at minimum: `idle` (2 frames), `walk` (4 frames), `attack` (3 frames), `hurt/death` (2 frames), plus distinct visual silhouettes, faction color palettes, weapons/shields, and drop shadows.
+- Support smooth 60 FPS rendering with `requestAnimationFrame`, delta-time clamping, floating combat text, health/mana/respawn bars, aura rings for zero-damage towers, and crisp AoE telegraphs.
+
+================================================================================
+SECTION 3: CANONICAL LORE BIBLE ("THE RECORDS OF ALL TIME")
+================================================================================
+
+All story briefings, in-game dialogue, character names, and Codex entries MUST remain faithful to this canonical chronology:
+
+- THE AGE OF THE PRIMORDIALS: Created by the First Born, two primeval beings existed in separate realms: The Harbinger (chaos/destruction, in the Void) and The Wellspring (pure energy, in the Bloom). Millennia of war caused their realms to collide; the Harbinger consumed the Wellspring, who later burst forth, restoring the Bloom and Void and creating a third physical realm: The Emergence. Critically wounded, the Wellspring split into four Primordial Elemental Entities—Earth, Air, Fire, and Water—to balance reality and block the Void, while the Wellspring went missing. Ancient civilizations repeatedly rose and were wiped out by elemental cycles until 14 ancient humans fled into deep caves and found two Orbs: a radiant Light Orb (Elemental power) and a consuming Dark Orb (Arcane power). The first touched the Light Orb and vanished (known in legend as Harethel the Light); the second touched the Dark Orb and vanished unnamed.
+- THE AGE OF THE ANCIENTS: The remaining 12 learned to channel the Orbs' infinite power into crystals—6 devoting themselves to Light (creation) and 6 to Dark (destruction so newness can follow). They built civilization and eventually ascended into the 12 Gods. In their absence, Gildelal and his apprentice Gimelal led a civil war, enslaved humanity to mine crystals, and created orcs, goblins, and savage races. Gildelal ascended as a powerful deity and Gimelal as a minor one. The 12 Gods returned, fought a massive war, banished Gildelal to the Void, and drove Gimelal into hiding in the Far East. The 12 Gods then waged war against the four Primordial Elementals, siphoning 3/4 of each elemental's power into 4 massive Crystals hidden across the land, intending to banish the weakened elementals and anchor reality to the Crystals. During the ensuing golden age, the Gods created the modern races (modern humans, elves, dwarves). Suddenly, Lord Erebus—the unnamed 14th human, now the Harbinger's apprentice—tore open a Void rift. The 12 Gods summoned Harethel the Light from the Light Orb to fight Erebus for millennia. Simultaneously, the Fire Entity reunited with his Crystal near the Temple of the Orbs; the Mystic Keepers defeated him and banished him to a surface volcano, though the Temple was destroyed and the surviving Keepers fled to hide the Fire Crystal, losing the Orbs' location to time. Harethel ended the war by banishing herself and Erebus to the Void. The Ancients died out, magic began fading, and the 4 Crystals were never activated.
+- THE AGE OF KINGS: Centuries later, kingdoms rose. The Fire Entity marched from his volcano against Alliston and Lorentil, forging their historic alliance alongside Elves, Dwarves, and a mysterious northern Ice Entity. Together they banished Fire to the Void—unknowingly breaking the first anchor of reality. Soon after, Gimelal returned from the Far East with depleted magic, leading evil men, orcs, and goblins. Alliston rode East to aid Lorentil; amid reality-fracture fire anomalies, their greatest mages drained Gimelal's divinity and killed him for good.
+- THE PRIMORDIAL USURPING: The Ice Entity betrayed the alliance and invaded Alliston. Prince Arryn and his cohorts fought their way to Lorentil, rallied a counterattack, defeated the Ice Entity, and melted the northern glaciers. Thawed from the ice, an ancient Dino King and prehistoric beast-riders overran Alliston; Lorentil pushed through the Sleeping Mountains and Dwarven tunnels to liberate Alliston. Years later, southern seaports flooded as Atlanteans invaded; the alliance discovered the Ice Entity was actually the Primordial Water Entity—now melted and controlling the Atlanteans—and summoned ancient mages to banish Water to the Void. Seeing Fire and Water banished, Earth and Air formed a desperate truce; the alliance fought into the high peaks and skylands to banish both. Finally, all four Elementals combined in the Void to tear back into reality in a massive Maelstrom, until heroes from across the realm united to drain and seal them in the Void.
+- THE AGE OF REBIRTH: With all four elements removed, reality fractured—landmasses floated into the sky and chaos reigned. Four adventurers followed ancient scrolls across the shattered world to locate and activate the 4 Elemental Crystals, stumbling upon the lost Light and Dark Orbs deep in the fractured depths.
+- THE APOCALYPSE: All entities in the Void (the 4 Elementals, Gildelal, Lord Erebus, Harethel, and the Harbinger) merged into one Arcane-Elemental Entity to erase the Emergence. The 12 Gods returned, mages expended all remaining crystal power, and the Orbs from Rebirth were used to pull Harethel free to split the Entity. Four canonical ending branches exist (all 4 playable in Game 13):
+  1. Ending A (Restoration): The split restores the Wellspring, who banishes the Harbinger; the 4 Crystals stabilize reality in permanent balance.
+  2. Ending B (The Eternal Cycle): The Wellspring and Harbinger burst forth with cataclysmic force, obliterating the Emergence and resetting the Bloom and Void to the beginning of time.
+  3. Ending C (The Mentor's Return): Harethel summons the living Wellspring—who had been mentoring her inside the Bloom—to personally cast the Harbinger back into the Void.
+  4. Ending D (The Unified Orb): The Wellspring is truly gone; a final battle banishes the combined Entity into a merged Bloom-Void realm (fusing the Orbs), while Harethel remains in the Emergence with the 12 Gods as eternal guardian.
+
+================================================================================
+SECTION 4: DETAILED SPECIFICATIONS FOR ALL 13 GAMES
+================================================================================
+
+Every tactical game MUST include at least 5 handcrafted stages (with distinct map layouts, lanes, build pads, wave compositions, and a climax boss fight), 6–8 playable heroes, 3–4 act-specific movable troop types, and 5–6 zero-damage support towers (pick 3 per stage).
+
+--------------------------------------------------------------------------------
+GAME 01: VANGUARD CHAMPIONS: THE FIRST DESCENT [NEW — Age of Primordials]
+--------------------------------------------------------------------------------
+- Directory: `/games/01-first-descent/`
+- Engine: Tactical Engine (Survival-Escort Variant)
+- Story: Guide the 14 ancient humans fleeing the cataclysmic elemental cycles across the untamed Emergence and deep into the subterranean caverns, culminating in the discovery of the Light and Dark Orbs where Harethel and the Unnamed One vanish.
+- Campaign (5 Stages): 1. Shattered Plains (Fire/Earth clash), 2. Flooding Gorge (Water surge), 3. Wind-Scoured Crags, 4. The Deep Cavern Mouth, 5. Sanctum of the Two Orbs (climax defense while the 12 attune to the crystals).
+- Signature Mechanic: **Elemental Cataclysm Cycles**—every 35 seconds, a map-wide environmental hazard (rising floodwater, magma fissures, gale winds, falling stalactites) shifts safe zones, forcing constant squad and troop migration.
+- Heroes (6 of the 14, including Harethel & the Unnamed as playable leads in Stages 1–4, then Ascendant Initiates in Stage 5): Harethel (Radiant Seer/Healer), The Unnamed (Shadow-Touched Striker), Korin (Stone-Shield Vanguard), Lyra (Sling-Skirmisher), Taren (Torch-Warder), Vael (Cave-Tracker).
+- Movable Troops: Flint-Spearmen, Torch-Bearers, Tunnel-Scouts.
+- Zero-Damage Support Towers (5): Bonfire Ward (warmth/attack speed aura), Stone Barricade (blocks path/soaks hits), Resonance Cairn (slows elemental spirits), Shelter Totem (reduces cataclysm hazard damage), Echo Lantern (reveals subterranean ambushers).
+- Anti-Unit Enemies & Bosses: Primal Magma-Slimes (leave burn pools), Gale-Wisps (knockback scatter), Tectonic Golems (AoE cleave), Boss: The Unbound Convergence (four-element raw storm manifestations).
+- Visuals/Audio: Primeval obsidian, bioluminescent cavern blues, raw volcanic oranges; tribal percussion & cavernous ambient drones.
+
+--------------------------------------------------------------------------------
+GAME 02: VANGUARD CHAMPIONS: SHATTERED CROWN [NEW — Age of Ancients]
+--------------------------------------------------------------------------------
+- Directory: `/games/02-shattered-crown/`
+- Engine: Tactical Engine
+- Story: The 12 Gods have ascended. Gildelal and his apprentice Gimelal enslave humanity to hoard crystal energy and forge the first orcs and goblins. Lead the crystal-miner rebellion and fight alongside the returning 12 Gods to banish Gildelal to the Void while Gimelal flees East.
+- Campaign (5 Stages): 1. The Crystal Pits (slave uprising), 2. Iron-Forge Foundries, 3. Blood-Spire Crossing, 4. Siege of Gildelal's Citadel, 5. The Void Banishment (Bosses: Gimelal & Deified Gildelal).
+- Signature Mechanic: **Crystal Siphon Nodes**—capturable crystal veins on the map that accelerate troop reinforcements and hero ability cooldowns when held by movable units, but empower Gildelal's overseers if left uncontested.
+- Heroes (7): Seraphina (Light-Channeler Healer), Malakor (Dark-Arcane Executioner), Orin (Mine-Breaker Tank), Kaelith (Crystal-Bow Ranger), Veyra (Spell-Weaver), Dax (Chain-Flail Bruiser), Avatar of the Twelve (unlockable Stage 4).
+- Movable Troops: Liberated Miners (pickaxe frontline), Arcane Initiates, Crystal-Slingers.
+- Zero-Damage Support Towers (5): Crystal Conduit (cooldown haste aura), Arcane Dampener (silences overseer mages), Light-Ward Obelisk (shielding pulse), Gravity Snare (heavy slow), Rebel Rally Banner (boosts movable troop speed & armor).
+- Anti-Unit Enemies & Bosses: Orc Cleavers (anti-clump sweep), Goblin Sapper-Swarms (shred troops), Slave-Master Warlocks (corrupt ground), Boss: Ascended Gildelal (multi-phase Void/Arcane tyrant) & Gimelal (escapes at 15% HP).
+- Visuals/Audio: Gleaming crystalline mines, brutal iron citadels, violet arcane rifts; intense martial synth-orchestral score.
+
+--------------------------------------------------------------------------------
+GAME 03: VANGUARD CHAMPIONS: THE CRYSTAL SUNDERING [NEW — Age of Ancients]
+--------------------------------------------------------------------------------
+- Directory: `/games/03-crystal-sundering/`
+- Engine: Tactical Engine (Titan-Siphon Boss Campaign)
+- Story: The 12 Gods lead the ancient mystics in a grand war against all four full-powered Primordial Elementals, fighting to siphon three-quarters of each Titan's essence into the Four Massive Crystals.
+- Campaign (5 Stages): 1. Siphoning of Earth (Obsidian Basin), 2. Siphoning of Air (Cloud-Spire Peaks), 3. Siphoning of Water (Abyssal Shelf), 4. Siphoning of Fire (Caldera of Creation), 5. The Fourfold Binding (defend all 4 charging crystals against elemental counter-surges).
+- Signature Mechanic: **Ritual Crystal Anchors**—each stage features a colossal Primordial Boss moving across or towering over the battlefield. Players must position heroes/troops around Siphon Pylons to charge the Crystal while dodging massive telegraphed Titan attacks.
+- Heroes (7): Solarius (Light-Paladin Tank), Nyx (Dark-Rift Assassin), Thalor (Grand Mystic Mage), Aelindra (Lifebinder Healer), Baelen (Crystal-Lancer), Zephyra (Tempest-Archer), Archon of Balance (hybrid support).
+- Movable Troops: Mystic Acolytes, Runic Phalanx, Spell-Archers.
+- Zero-Damage Support Towers (5): Siphon Amplifier (accelerates ritual charge & hero mana), Prism Reflector (grants AoE resistance to nearby allies), Binding Spire (roots/slows elemental spawns), Aegis Monolith (absorbs one Titan slam per cooldown), Chronos Sundial (speeds hero respawn timers).
+- Anti-Unit Enemies & Bosses: Elemental Spawnlings, Shatter-Crags (anti-troop), Cyclone-Stalkers (backline divers), 4 Colossal Primordial Titan Bosses (Earth, Air, Water, Fire at full ancient power).
+- Visuals/Audio: Grand golden-age mystic architecture clashing with pure elemental palettes; epic choral-synth themes.
+
+--------------------------------------------------------------------------------
+GAME 04: VANGUARD CHAMPIONS: ECLIPSE OF THE ANCIENTS [NEW — Age of Ancients]
+--------------------------------------------------------------------------------
+- Directory: `/games/04-eclipse-of-the-ancients/`
+- Engine: Tactical Engine (Dual-Front Crisis)
+- Story: Lord Erebus tears open a Void rift as the Harbinger's apprentice. The 12 Gods summon Harethel the Light to battle him, while the Fire Entity reunites with his Crystal near the Temple of the Orbs. Command the Mystic Keepers in a desperate last stand to banish Fire to a surface volcano and escape with the Fire Crystal as Harethel seals Erebus away.
+- Campaign (5 Stages): 1. The Great Rift Opens, 2. Summoning of Harethel, 3. Outer Steps of the Temple of the Orbs, 4. Rejuvenated Flame (holding the Inner Sanctum against Fire Entity), 5. The Sacrifice & Exodus (escort the Fire Crystal while Harethel clashes with Erebus).
+- Signature Mechanic: **Light/Void Polarity Shifts**—battlefield zones alternate between Void Corruption (drains healing, boosts enemy speed) and Harethel's Radiance (cleanses debuffs, empowers allies). Support towers can project Safe-Light bubbles to reclaim territory.
+- Heroes (7): Harethel the Light (Radiant Champion), Keeper Valen (Temple-Guard Tank), Sister Mirella (Orb-Cleric), Cassian (Arcane-Blademaster), Orla (Sun-Archer), Dusk-Walker Ryn (Dark-Orb Specialist), Elder Vaelor (Arch-Mystic).
+- Movable Troops: Temple Guardians, Orb-Mages, Relic-Bearers.
+- Zero-Damage Support Towers (5): Beacon of Dawn (purifies Void zones & heals), Void-Anchor Ward (slows & strips enemy shields), Sanctuary Dome (anti-AoE damage reduction), Warp Gate (instantly teleports movable troops between lanes), Silence Bell (interrupts Void casters).
+- Anti-Unit Enemies & Bosses: Void-Reavers (anti-healer assassins), Ash-Colossi (anti-clump), Rift-Weavers, Bosses: Rejuvenated Fire Entity (Stage 4) and Lord Erebus (Stage 5 duel/defense).
+- Visuals/Audio: Stark chiaroscuro—blinding golden light vs. pitch-black/magenta Void energy and volcanic ember; haunting, dramatic score.
+
+--------------------------------------------------------------------------------
+GAME 05: VANGUARD CHAMPIONS: CRIMSON DAWN [ORIGINAL PREQUEL — Age of Kings]
+--------------------------------------------------------------------------------
+- Directory: `/games/05-crimson-dawn/`
+- Engine: Tactical Engine
+- Story: Centuries later, the Fire Entity marches from his volcanic home to attack Alliston and Lorentil. Forging the historic alliance with Elves, Dwarves, and a mysterious northern Ice Entity, the kingdoms push Fire back to the volcano and banish him to the Void—unknowingly breaking the first anchor of reality.
+- Campaign (5 Stages): 1. Burning Borders of Alliston, 2. Siege of Lorentil's Gate, 3. Elven-Dwarven Accord (forest/mountain pass), 4. Pact of the Frost-Peak (allying with the Ice Entity), 5. Heart of the Caldera (banishing the Fire Entity to the Void).
+- Signature Mechanic: **Frost-Flame Synergy**—allied Ice Entity blessings periodically frost-coat lanes, cooling magma hazards and amplifying enemy vulnerability when players lure fiery foes into chilled zones.
+- Heroes (7): Lord Garrick of Alliston (Shield-Knight Tank), Lady Isolde of Lorentil (Battle-Mage), Thalindra (Elven Longbow Ranger), Borin Ironhelm (Dwarven Axe-Bruiser), Brother Aldric (Light-Cleric), Fenris (Northern Frost-Scout), Archmage Caelum (Void-Ritualist).
+- Movable Troops: Alliston Pikemen, Lorentil Crossbowmen, Elven Swordsmen, Dwarven Deep-Wardens.
+- Zero-Damage Support Towers (5): Royal War-Banner (attack speed/damage buff), Frost-Brazier (chills & slows fire units), Dwarven Runestone (armor & burn-immunity aura), Elven Mist-Shrine (evasion & stealth reveal), Healing Tent (rapid troop & hero regen).
+- Anti-Unit Enemies & Bosses: Cinder-Hounds (fast troop shredders), Magma-Brutes (heavy AoE slam), Ash-Pyromancers (ground fire pools), Boss: The Fire Entity (volcanic titan banished via Void-portal climax).
+- Visuals/Audio: Medieval heraldry (blue/gold Alliston, emerald/silver Lorentil) against charred ashlands and glowing lava; heroic fantasy orchestral synth.
+
+--------------------------------------------------------------------------------
+GAME 06: VANGUARD CHAMPIONS: EASTERN RECKONING [NEW — Age of Kings]
+--------------------------------------------------------------------------------
+- Directory: `/games/06-eastern-reckoning/`
+- Engine: Tactical Engine
+- Story: With magic depleting, Gimelal returns from the Far East leading evil men, orcs, and goblins against Lorentil. Alliston rides East to aid their ally, battling both the savage horde and erratic fire anomalies erupting from the unwinding fabric of reality, culminating in draining Gimelal's divinity to kill him forever.
+- Campaign (5 Stages): 1. Ambush on the Eastern Road, 2. The Blazing Fissures (fire anomalies + orc raiders), 3. Defense of Lorentil's East Wall, 4. March into the Ashen Steppe, 5. The Divinity Drain (final battle against Gimelal).
+- Signature Mechanic: **Reality-Tear Anomalies & Mana-Drain Ritual**—spontaneous fire-rifts open mid-wave, spawning rogue flame spirits that attack BOTH sides unless contained; in Stage 5, keeping mages and towers linked drains Gimelal's immortality shield.
+- Heroes (7): Sir Roland of Alliston (Cavalry-Vanguard), Commander Sylva (Lorentil Tactician), Magister Dorian (Drain-Mage), Kael (Orc-Slayer Ranger), Sister Evelyne (Field-Healer), Thrain (Dwarven Sapper-Tank), Mira (Shadow-Rogue).
+- Movable Troops: Alliston Lancers, Lorentil Halberdiers, Battle-Mages.
+- Zero-Damage Support Towers (5): Siphon Obelisk (weakens enemy magic & charges Drain bar), Barricade Palisade (choke-point wall), War-Horn Tower (move/attack haste), Ward of Stability (closes nearby reality fire-rifts), Hex-Banner (armor shred).
+- Anti-Unit Enemies & Bosses: Corrupted Marauders, Orc Berserkers (anti-troop), Goblin Bomb-Runners (anti-clump AoE), Rogue Fire-Anomalies, Boss: Gimelal the Undying (multi-phase fallen minor deity).
+- Visuals/Audio: Sun-scorched eastern steppes, medieval fortresses, unstable orange reality cracks; driving war-drum percussion.
+
+--------------------------------------------------------------------------------
+GAME 07: VANGUARD CHAMPIONS (ORIGINAL) [ORIGINAL #1 — Primordial Usurping]
+--------------------------------------------------------------------------------
+- Directory: `/games/07-vanguard-champions/`
+- Engine: Tactical Engine (Flagship Classic)
+- Story: At the dawn of the Primordial Usurping, the Ice Entity betrays the alliance and invades Alliston. Follow fleeing Prince Arryn and his cohorts as they fight their way to Lorentil, rally a massive counterattack, defeat the Ice Entity, and melt the northern glaciers.
+- Campaign (6 Stages): 1. Fall of Alliston (fighting retreat), 2. The Frozen River Crossing, 3. Ambush at Pine-Pass, 4. Gates of Lorentil (holding until reinforcements), 5. The Northern Countermarch, 6. Throne of the Glacier (defeating the Ice Entity).
+- Signature Mechanic: **Blizzard & Thaw Frontlines**—Stage 1–3 emphasize defensive fighting retreats/escorts with chilling winds that slow isolated units; Stage 4–6 introduce Hearth-Beacons that thaw frozen terrain and empower the counteroffensive.
+- Heroes (7): Prince Arryn (Balanced Prince-Paladin Tank/Leader), Captain Marcus (Shield-Wall), Elara (Lorentil Fire-Mage), Rowan (Royal Longbowman), Sister Clara (Devout Healer), Vance (Twin-Blade Assassin), Archmage Thorne (Cryo-Breaker).
+- Movable Troops: Alliston Pikemen, Royal Archers, Lorentil Knights, Elven Scouts.
+- Zero-Damage Support Towers (5): Hearth-Brazier (prevents frostbite & boosts attack speed), Tactics Pavilion (cooldown reduction), Oil-Slick Catapult-Pad (zero-damage heavy slow & vulnerability), Shield-Wall Bastion (armor aura), Apothecary Post (healing aura).
+- Anti-Unit Enemies & Bosses: Frost-Ghouls (swarm), Glacier-Yeti (huge AoE smash), Ice-Lancers (line-pierce anti-troop), Hoarfrost-Witches (freeze healers), Boss: The Ice Entity (shattering glacier form).
+- Visuals/Audio: Iconic crisp winter fantasy—snowy castles, frozen pines, warm torchlight; classic heroic anthem.
+
+--------------------------------------------------------------------------------
+GAME 08: VANGUARD CHAMPIONS: WILDLANDS [ORIGINAL #2 — Primordial Usurping]
+--------------------------------------------------------------------------------
+- Directory: `/games/08-wildlands/`
+- Engine: Tactical Engine
+- Story: With the glaciers melted, an ancient Dino King and his prehistoric beast-riders thaw out and completely overrun Alliston. Lorentil marches out—pushing through the Sleeping Mountains and Dwarven tunnels—to liberate Alliston and defeat the Dino King.
+- Campaign (6 Stages): 1. Overgrown Ruins of Alliston, 2. Foothills of the Sleeping Mountains, 3. The Dwarven Deep-Tunnels, 4. Cavern of the Brood-Mothers, 5. Siege of the Dino-Camp, 6. Liberation of Alliston (Boss: The Dino King).
+- Signature Mechanic: **Stampede Lanes & Subterranean Ambush**—prehistoric beasts trigger telegraphed full-lane stampedes that knock back and crush stationary units, forcing Battleheart-style sideways dodging and barricade/slow-tower funneling.
+- Heroes (7): Prince Arryn (Veteran Commander), General Brenna (Lorentil Greatsword Bruiser), Dorgin (Dwarven Deep-Warden Tank), Sylph (Elven Beast-Hunter Ranger), Kaelen (Geomancer), Friar Oren (Combat-Healer), Zira (Tunnel-Assassin).
+- Movable Troops: Lorentil Footmen, Dwarven Deep-Wardens, Tunnel-Crossbowmen, Elven Trackers.
+- Zero-Damage Support Towers (5): Spiked Pit-Trap (zero-damage root & armor shred), Dwarven Sonic-Bell (disorients/cancels beast stampedes), Hunter's Watchtower (crit-chance aura & ambush reveal), Banner of Lorentil (damage/haste buff), Herbalist Camp (cleanses poison & heals).
+- Anti-Unit Enemies & Bosses: Raptor-Packs (backline divers), Armored Tricera-Chargers (stampede anti-clump), Venom-Spitters (anti-troop puddles), Beast-Riders, Boss: The Ancient Dino King (mounted colossal Rex-Titan).
+- Visuals/Audio: Thawed prehistoric jungles invading medieval ruins, glowing dwarven forge-tunnels; primal drums & brassy adventure motifs.
+
+--------------------------------------------------------------------------------
+GAME 09: VANGUARD CHAMPIONS: DEPTHS RISING [ORIGINAL #4 — Primordial Usurping]
+--------------------------------------------------------------------------------
+- Directory: `/games/09-depths-rising/`
+- Engine: Tactical Engine (Coastal & Naval Deck Defense)
+- Story: Southern seaports flood as the Atlanteans invade. Fighting coastal and ship-to-ship naval battles south, the alliance discovers the old Ice Entity was actually the Primordial Water Entity—now melted and compelling the Atlanteans—and calls on ancient mages to learn of the Void and banish Water.
+- Campaign (5 Stages): 1. Sinking of Port Haven, 2. The Coral Armada (ship-deck lanes with boarding planks), 3. Sunken Reefs, 4. Citadel of the Tide, 5. The Abyssal Banishment (Boss: Primordial Water Entity).
+- Signature Mechanic: **Rising Tide & Ship-Plank Chokepoints**—dynamic tide levels periodically submerge low-ground tiles (slowing land units and empowering Atlanteans) while raising high-ground decks/reefs, demanding active vertical repositioning.
+- Heroes (7): Admiral Corvus (Cutlass-Tank), Marina (Tide-Warder Mage), Prince Arryn (Alliance Champion), Lyris (Harpoon-Ranger), Ancient Sage Orpheus (Void-Lore Mage), Brother Tidus (Sea-Cleric), Shade (Corsair Assassin).
+- Movable Troops: Port-Marines, Deck-Archers, Elven Wave-Blades, Ancient Acolytes.
+- Zero-Damage Support Towers (5): Bilge-Pump Beacon (drains flooded tiles & boosts ally speed), Net-Launcher (zero-damage AoE snare), Lighthouse Spire (accuracy/crit aura & mist reveal), Void-Chalk Circle (weakens elemental armor), Ship-Surgeon Tent (healing aura).
+- Anti-Unit Enemies & Bosses: Atlantean Trident-Phalanx, Siren-Callers (pull/charm heroes out of position), Kraken-Tentacles (AoE slam), Leviathan-Riders (shred troops), Boss: The Primordial Water Entity (shifting tidal form).
+- Visuals/Audio: Deep teal oceans, wooden galleon decks, bioluminescent Atlantean marble; nautical strings & swelling oceanic synth.
+
+--------------------------------------------------------------------------------
+GAME 10: VANGUARD CHAMPIONS: SKYREACH [ORIGINAL #5 — Primordial Usurping]
+--------------------------------------------------------------------------------
+- Directory: `/games/10-skyreach/`
+- Engine: Tactical Engine (High-Altitude & Skyland Defense)
+- Story: Seeing Fire and Water banished, the territorial Earth and Air Entities form a desperate truce to fight back. The alliance ascends into the high peaks and floating skylands to defeat and banish them both, unknowingly severing the last physical anchors of reality.
+- Campaign (6 Stages): 1. Quaking Foothills (Earth vanguard), 2. Wind-Carved Bridges (Air ambush), 3. The Twin Monoliths, 4. Floating Bastion of Skyreach, 5. Tempest & Tremor (dual-element waves), 6. The Final Anchor (Twin Boss Battle: Earth & Air Entities).
+- Signature Mechanic: **Wind Currents & Shifting Stone Bridges**—Air gusts push units along lanes (helping or hindering movement) while Earth tremors raise/lower stone paths, requiring players to use Anchor Towers and Warp Pads to maintain squad cohesion.
+- Heroes (7): Sky-Captain Aeria (Wind-Lancer), Stone-Breaker Grum (Dwarven Tank), Archmage Vaelis (Void-Binder), Kestrel (Eagle-Eye Archer), Selene (Star-Healer), Zephyr (Air-Dancer Assassin), Prince Arryn.
+- Movable Troops: Sky-Marines, Grapple-Archers, Dwarven Iron-Anchors, Wind-Mages.
+- Zero-Damage Support Towers (5): Wind-Break Wall (blocks gale pushback & slows flyers), Gravity Anchor (grounds flying enemies & shreds armor), Sky-Beacon (attack range & haste buff), Stone-Mender Shrine (shields & heals), Gale-Pad (launches movable troops across chasms).
+- Anti-Unit Enemies & Bosses: Stone-Juggernauts (anti-clump shockwave), Storm-Harpies (flying backline divers), Dust-Devils (scatter troops), Bosses: The Earth Entity & The Air Entity (coordinated twin-boss finale).
+- Visuals/Audio: Sunlit clouds, floating emerald/granite islands, crackling lightning; soaring, airy orchestral synth.
+
+--------------------------------------------------------------------------------
+GAME 11: VANGUARD CHAMPIONS: MAELSTROM [ORIGINAL #6 — Primordial Usurping]
+--------------------------------------------------------------------------------
+- Directory: `/games/11-maelstrom/`
+- Engine: Tactical Engine (All-Star Multi-Elemental Survival)
+- Story: The four banished Elementals combine their remaining strength in the Void to tear back into reality in one massive, unstable Maelstrom. Heroes from across the entire land—Alliston, Lorentil, Elves, Dwarves, and redeemed Atlanteans—band together to drain their power and seal them in the Void for good.
+- Campaign (5 Stages): 1. Eye of the Rift, 2. Convergence of Flame & Frost, 3. Shattered Horizon (Earth & Air storm), 4. The Fourfold Vortex, 5. The Eternal Seal (multi-phase Elemental Maelstrom Boss).
+- Signature Mechanic: **Elemental Phase Rotation**—the battlefield itself cycles between Fire, Water, Earth, and Air storm phases every 30 seconds, altering enemy traits and rewarding players who adapt their 3-tower loadout and rotate heroes on the fly.
+- Heroes (8 All-Stars): Prince Arryn, Lady Isolde, Borin Ironhelm, Thalindra, Admiral Corvus, Sky-Captain Aeria, Archmage Orpheus, High-Cleric Clara.
+- Movable Troops: Alliance Vanguard, Elven Spell-Blades, Dwarven Bastion-Guard, Atlantean Tide-Guard.
+- Zero-Damage Support Towers (6): Prismatic Ward (adapts resistance to current storm element), Void-Drain Pylon (weakens elementals & fills Seal meter), Grand Alliance Banner (all-stat aura), Temporal Stasis Field (massive AoE slow), Warp Relay (instant squad reposition), Sanctuary Beacon (burst heal aura).
+- Anti-Unit Enemies & Bosses: Unstable Chimera-Elementals, Void-Torn Reavers, Storm-Bombers (anti-clump), Boss: The Maelstrom Amalgam (4-phase shifting boss combining Fire, Water, Earth, and Air mechanics).
+- Visuals/Audio: Swirling four-color vortex skies, fractured battlefields, electric chaos; relentless, high-tempo symphonic climax.
+
+--------------------------------------------------------------------------------
+GAME 12: VANGUARD CHAMPIONS: REBIRTH [ORIGINAL #7 — Age of Rebirth]
+--------------------------------------------------------------------------------
+- Directory: `/games/12-rebirth/`
+- Engine: **TOP-DOWN 2D ACTION-ADVENTURE STORY RPG ENGINE (`shared/adventureEngine.js`)**
+  *(CRITICAL: This game is NOT a tower defense! It is a full story-driven action-adventure game.)*
+- Story: With all four elements removed, reality fractures—landmasses float in the sky and creatures war in chaos. Four unlikely adventurers follow ancient scrolls across the shattered realm to locate and activate the 4 Elemental Crystals, stumbling upon the lost Light and Dark Orbs deep in the fractured depths along the way.
+- Gameplay Loop & Mechanics:
+  * **4-Adventurer Party**: Real-time top-down movement (`WASD`/Arrows or click-to-move) with instant leader switching (`1`–`4`) while the other 3 party members follow in smart AI formation and assist in combat.
+  * **The 4 Adventurers**:
+    1. Kael (Wayfarer Swordsman — melee combo & dash)
+    2. Lyra (Scroll-Scholar Mage — elemental resonance puzzles & ranged bolts)
+    3. Bram (Exiled Dwarven Shieldbearer — heavy slam & push-blocks/shield-bash)
+    4. Wren (Sky-Scout Archer — grappling/bridge switches & rapid-shot)
+  * **World Exploration & 5 Interconnected Regions**:
+    1. The Floating Crossroads (Hub & Ancient Scroll deciphering)
+    2. Cinder-Spire Ruins (Find & activate the hidden Fire Crystal)
+    3. Sunken Sky-Falls (Water-flow puzzles & Water Crystal)
+    4. Crag-Heart & Gale-Sanctum (Earth/Air dual floating dungeon & Crystals)
+    5. The Fractured Depths (Secret ancient abyss—rediscover the forgotten Temple ruins and uncover the Light and Dark Orbs, guarded by a Void-Echo Sentinel).
+  * **Environmental Puzzles, Lore Scrolls & Bosses**: Pressure plates, crystal-beam mirrors, floating bridge switches, collectible Ancient Scrolls (unlocking Codex entries), campfires (heal/save), and 4 real-time action-RPG boss fights.
+- Visuals/Audio: Wonder-filled surreal floating islands, glowing crystal ruins, drifting clouds, mysterious glowing Orbs; atmospheric, melodic adventure soundtrack.
+
+--------------------------------------------------------------------------------
+GAME 13: VANGUARD CHAMPIONS: APOCALYPSE [NEW — The Apocalypse / Grand Finale]
+--------------------------------------------------------------------------------
+- Directory: `/games/13-apocalypse/`
+- Engine: Tactical Engine (Grand Finale Multi-Ending War)
+- Story: The Void entities—the 4 Elementals, Gildelal, Lord Erebus, Harethel, and the Harbinger—emerge as ONE combined Arcane-Elemental Entity to erase the Emergence. The 12 Gods return, mages pour out all stored crystal power, and the Light & Dark Orbs from *Rebirth* are used to pull Harethel free to split the Entity.
+- Campaign (6 Stages): 1. The Sky Tears Open, 2. Return of the Twelve Gods, 3. Defense of the Four Crystals, 4. Unleashing the Orbs (escorting the Rebirth adventurers' relics to the ritual altar), 5. Pulling Harethel Free (massive multi-lane Void siege), 6. The Shattering of the One Entity (Grand Final Boss + Ending Choice/Condition).
+- Signature Mechanic: **Orb Overcharge & The 4 Canonical Endings**—players charge the Light and Dark Orbs during the final stages using crystal power. In Stage 6, after pulling Harethel free and splitting the Combined Entity, the player's tactical resolution and final Orb/Wellspring decision unlocks and plays out ALL FOUR canonical endings from "The Records of All Time":
+  * Ending A: *Restoration of the Wellspring* (Activate all 4 Crystals + Balanced Orbs)
+  * Ending B: *The Eternal Cycle* (Overload both Orbs to maximum during the clash)
+  * Ending C: *The Mentor's Return* (Channel pure Light Orb through Harethel to summon the living Wellspring)
+  * Ending D: *The Unified Orb* (Fuse Light & Dark Orbs to seal the Entity forever, with Harethel & the 12 Gods standing eternal watch)
+  Players can replay Stage 6 to unlock all 4 Ending Badges in the Launcher!
+- Heroes (8 Legendary Cross-Era Roster): Harethel the Light (unlocked Stage 5/6), Avatar of the 12 Gods, Prince Arryn, Kael (Rebirth Adventurer), Lyra (Rebirth Scholar), Lady Isolde, Borin Ironhelm, Archmage Orpheus.
+- Movable Troops: Awakened Ancients, Alliance Paladins, Crystal-Weavers, Elven-Dwarven Vanguard.
+- Zero-Damage Support Towers (6): Light-Orb Conduit (massive healing & radiant buff), Dark-Orb Nullifier (strips boss shields & slows), Anchor of the Twelve (revives/hastens hero respawns), Reality-Stitcher (repairs fractured terrain), Crystal-Prism (amplifies hero skill cooldowns), Aegis of the Emergence (team-wide AoE barrier).
+- Anti-Unit Enemies & Bosses: Echoes of Gildelal, Void-Knights of Erebus, Corrupted Elementals, Boss: The Combined Arcane-Elemental Entity (and its split Harbinger/Void phases).
+- Visuals/Audio: Cosmic gold, prismatic bloom-colors, obsidian void-rifts, shattering skies; grand finale symphonic score.
+
+================================================================================
+SECTION 5: LAUNCHER (`index.html`) & LORE CODEX SPECIFICATION
+================================================================================
+
+The root `index.html` must serve as a polished, commercial-grade franchise portal:
+1. Hero Header: "VANGUARD CHAMPIONS: THE COMPLETE CHRONICLES" with animated canvas particle backdrop (drifting golden Bloom motes and violet Void embers).
+2. View Toggle: Switch between **Chronological Era Timeline (Games 1–13)** and **Original 7 + 6 Lore Expansions** filter, with clear Era banners (*Age of Primordials*, *Age of Ancients*, *Age of Kings*, *Primordial Usurping*, *Age of Rebirth*, *The Apocalypse*).
+3. Game Cards: Each of the 13 cards displays a procedurally rendered cover banner, game title, era tag, genre badge (`Tactical Squad-Defense` or `Action-Adventure RPG`), completion progress bar (e.g., `3/5 Stages`), Ending badges (for Game 13), and a crisp **PLAY** button.
+4. Interactive Lore Codex ("The Records of All Time"): A modal/tab where players can read the complete canonical lore book divided by era, plus unlocked unit/boss biographies.
+5. Global Save Manager UI: Shows total franchise completion %, Export Save (.json with integrity checksum), Import Save (validates checksum), and Reset Save (with double confirmation).
+6. Audio & Accessibility Settings: Master/SFX/Music volume sliders, Tactical Auto-Pause toggle, and High-Contrast Telegraph toggle (saved to `localStorage` and respected by all 13 games).
+
+================================================================================
+SECTION 6: AUTONOMOUS EXECUTION PLAN & QUALITY GATES
+================================================================================
+
+Execute this build systematically in phases. Do not skip testing or polish.
+
+PHASE 1 — FOUNDATION & SHARED ENGINES
+1. Create `CREDITS_AND_LICENSES.md` confirming 100% procedural Canvas/WebAudio asset generation.
+2. Build `shared/saveManager.js` (with SHA-256 anti-tamper JSON export/import).
+3. Build `shared/audioEngine.js` (Web Audio API synth SFX: sword hits, bows, spells, heals, tower placements, boss roars, victory fanfare, plus era-themed procedural looping BGM with mute/volume).
+4. Build `shared/spriteGenerator.js` (procedural offscreen-canvas spritesheet engine capable of generating distinct silhouettes, faction palettes, 4-frame walk cycles, attack flashes, tower tiers, tilemaps, and boss sprites).
+5. Build `shared/tacticalEngine.js`:
+   - 6-Hero Squad selection & real-time drag-to-move / click-to-move micro.
+   - Freely movable expendable troop deployment & control.
+   - Hero respawn timers (no permadeath).
+   - 3-Tower Zero-Damage Support Loadout system (strictly verify ZERO damage output from towers).
+   - Enemy wave spawner with telegraphed anti-unit attacks (AoE cleaves, troop shredders, backline divers) and multi-phase bosses.
+   - Tactical Pause (`Space`), speed toggle (`1x`/`2x`), victory/defeat/save loop.
+6. Build `shared/adventureEngine.js` for Game 12 (*Rebirth*):
+   - Top-down 2D exploration, 4-character party switching & follower AI, melee/ranged/skill combat, crystal puzzles, dialogue/scrolls, floating-island transitions, and boss fights.
+7. Build `shared/uiComponents.js` and `shared/loreData.js`.
+
+PHASE 2 — LAUNCHER PORTAL
+8. Build root `index.html` and `styles/launcher.css` with all 13 game cards, Lore Codex, Save Manager, and settings.
+
+PHASE 3 — BUILD ALL 13 GAMES (COMPLETE & DISTINCT)
+9. Implement Games 01–04 (*The First Descent*, *Shattered Crown*, *The Crystal Sundering*, *Eclipse of the Ancients*) with their unique signature mechanics, rosters, maps, and bosses.
+10. Implement Games 05–08 (*Crimson Dawn*, *Eastern Reckoning*, *Vanguard Champions*, *Wildlands*) with their unique signature mechanics, rosters, maps, and bosses.
+11. Implement Games 09–11 (*Depths Rising*, *Skyreach*, *Maelstrom*) with their unique signature mechanics, rosters, maps, and bosses.
+12. Implement Game 12 (*Rebirth*) using `adventureEngine.js` with all 5 floating regions, 4 adventurers, crystal puzzles, and the hidden Light & Dark Orbs climax.
+13. Implement Game 13 (*Apocalypse*) with the cross-era legendary roster, Orb Overcharge mechanic, Combined Entity boss, and all 4 unlockable canonical endings.
+
+PHASE 4 — VERIFICATION & POLISH (DEFINITION OF DONE)
+Before declaring completion, verify every single item:
+- [ ] All 13 games launch cleanly from `index.html` and return cleanly to `index.html` using relative paths (100% compatible with GitHub Pages subdirectory hosting like `https://user.github.io/repo/`).
+- [ ] Zero uncaught JavaScript console errors across the launcher and all 13 games.
+- [ ] Every tactical game enforces: 6-hero squad, freely movable expendable troops, hero respawn timers, 3 zero-damage support towers (verify no tower deals HP damage), flat skill-based progression (no star-upgrade trees), and telegraphed anti-unit enemy counterplay.
+- [ ] Game 12 (*Rebirth*) is a complete top-down action-adventure RPG with 4 switchable adventurers, 4 crystals, and the Light & Dark Orbs.
+- [ ] Game 13 (*Apocalypse*) has all 4 canonical endings playable and tracked in `localStorage`.
+- [ ] `localStorage` save persistence, JSON export/import, and checksum validation work end-to-end.
+- [ ] All visuals and audio are 100% procedurally generated (or verified CC0) with zero broken external links.
+
+BEGIN EXECUTION NOW. Build cleanly, thoroughly, and creatively until all 13 games and the launcher are complete and ready to publish on GitHub Pages.
