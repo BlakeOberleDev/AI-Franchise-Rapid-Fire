@@ -1,4 +1,5 @@
-export default {id:2,title:'Shattered Crown',theme:'#3d3153',
+import { mechanics } from './gameOverrides.js';
+export default {id:2,mechanics,title:'Shattered Crown',theme:'#3d3153',
 heroes:[{name:'Seraphina',hp:115,color:'#ffe7a0',role:'Healer'},{name:'Malakor',hp:105,color:'#b16fe7',role:'Executioner'},{name:'Orin',hp:180,color:'#9a8b83',role:'Tank'},{name:'Kaelith',hp:92,color:'#82c987',role:'Ranger'},{name:'Veyra',hp:95,color:'#67b9cf',role:'Mage'},{name:'Dax',hp:125,color:'#d47a5a',role:'Bruiser'},{name:'Avatar of Twelve',hp:145,color:'#f4d7ff',role:'Hybrid'}],
 towers:[{name:'Crystal Conduit',color:'#75efff'},{name:'Arcane Dampener',color:'#be79ff'},{name:'Light-Ward Obelisk',color:'#ffe687'},{name:'Gravity Snare',color:'#7777dc'},{name:'Rebel Rally Banner',color:'#e27862'}],
 enemies:[{name:'Orc Cleaver',hp:115,role:'cleaver',speed:28,color:'#79a44e'},{name:'Goblin Sapper',hp:55,role:'shredder',speed:48,color:'#a6c659'},{name:'Slave-Master Warlock',hp:85,role:'caster',speed:32,color:'#9858b8'}],

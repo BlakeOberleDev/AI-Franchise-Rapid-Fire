@@ -15,14 +15,16 @@ export function defaultSave() {
 }
 
 export function loadSave() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return defaultSave();
-    const parsed = JSON.parse(raw);
-    return parsed.data || parsed;
-  } catch {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return defaultSave();
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch(error) {
+    console.error('Vanguard Champions save data is unreadable. A new in-memory save was created; the original data was not deleted.',error);
     return defaultSave();
   }
+  if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('Vanguard Champions save data has an invalid structure.');
+  return mergeSave(parsed.data||parsed);
 }
 export function writeSave(save) {
   localStorage.setItem(SAVE_KEY, JSON.stringify(save));
@@ -30,7 +32,29 @@ export function writeSave(save) {
 }
 export function mergeSave(save) {
   const base = defaultSave();
-  return { ...base, ...save, settings: { ...base.settings, ...(save.settings || {}) }, games: { ...base.games, ...(save.games || {}) } };
+  if(!save||typeof save!=='object'||Array.isArray(save))throw new Error('Save data must be a JSON object.');
+  const games={};
+  for(let id=1;id<=13;id++){
+    const incoming=save.games?.[id]||{};
+    const defaults=base.games[id];
+    games[id]={
+      ...defaults,...incoming,
+      unlockedStages:Array.isArray(incoming.unlockedStages)?incoming.unlockedStages:defaults.unlockedStages,
+      completedStages:Array.isArray(incoming.completedStages)?incoming.completedStages:defaults.completedStages,
+      bestScores:incoming.bestScores&&typeof incoming.bestScores==='object'?incoming.bestScores:defaults.bestScores,
+      unlockedHeroes:Array.isArray(incoming.unlockedHeroes)?incoming.unlockedHeroes:defaults.unlockedHeroes,
+      unlockedCodexIds:Array.isArray(incoming.unlockedCodexIds)?incoming.unlockedCodexIds:defaults.unlockedCodexIds,
+      gameSpecificFlags:incoming.gameSpecificFlags&&typeof incoming.gameSpecificFlags==='object'?incoming.gameSpecificFlags:defaults.gameSpecificFlags,
+      endings:Array.isArray(incoming.endings)?incoming.endings:defaults.endings
+    };
+  }
+  const settings={...base.settings,...(save.settings||{})};
+  for(const key of ['master','sfx','music'])settings[key]=Math.max(0,Math.min(1,Number(settings[key])||0));
+  settings.autoPause=Boolean(settings.autoPause);settings.highContrast=Boolean(settings.highContrast);
+  return {
+    ...base,...save,settings,games,
+    codexUnlocked:Array.isArray(save.codexUnlocked)?save.codexUnlocked:base.codexUnlocked
+  };
 }
 export async function sha256(text) {
   if (globalThis.crypto?.subtle) {
@@ -56,11 +80,12 @@ export async function exportSave(save) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = 'vanguard-champions-save.json'; a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export async function importSave(file) {
   const payload = JSON.parse(await file.text());
-  if (!payload.data || !payload.integrity) throw new Error('Invalid Vanguard Champions save file.');
+  if (payload.app!=='Vanguard Champions'||payload.version!==1||!payload.data||typeof payload.data!=='object'||!payload.integrity)
+    throw new Error('This is not a supported Vanguard Champions save file.');
   const canonical = JSON.stringify(payload.data);
   const expected = await sha256(SALT + canonical);
   if (payload.integrity !== expected) throw new Error('Integrity check failed: this save may have been tampered with.');

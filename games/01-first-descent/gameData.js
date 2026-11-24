@@ -1,4 +1,5 @@
-export default {id:1,title:'Vanguard Champions: The First Descent',theme:'#3a332f',
+import { mechanics } from './gameOverrides.js';
+export default {id:1,mechanics,title:'Vanguard Champions: The First Descent',theme:'#3a332f',
 heroes:[{name:'Harethel',hp:110,color:'#ffd56b',dark:'#6b3d83',role:'Healer'},{name:'The Unnamed',hp:95,color:'#906dba',dark:'#25233f',role:'Striker'},{name:'Korin',hp:180,color:'#8d7b67',dark:'#42403a',role:'Tank'},{name:'Lyra',hp:90,color:'#86c5a4',dark:'#3d594d',role:'Ranger'},{name:'Taren',hp:120,color:'#e56e42',dark:'#59402d',role:'Bruiser'},{name:'Vael',hp:100,color:'#58aab2',dark:'#2e4d57',role:'Scout'}],
 towers:[{name:'Bonfire Ward',color:'#ff9a58'},{name:'Stone Barricade',color:'#aaa293'},{name:'Resonance Cairn',color:'#65d8c8'},{name:'Shelter Totem',color:'#80b66f'},{name:'Echo Lantern',color:'#8baeff'}],
 enemies:[{name:'Magma Slime',hp:78,color:'#ff774f',role:'hazard',speed:32},{name:'Gale Wisp',hp:58,color:'#a7dfff',role:'diver',speed:58},{name:'Tectonic Golem',hp:155,color:'#8e714f',role:'cleaver',speed:24}],
