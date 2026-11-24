@@ -19,6 +19,7 @@ export class AudioEngine {
     const sounds = {
       sword: [180, 0.08, 'sawtooth', 0.12, -90], bow: [520, 0.08, 'triangle', 0.09, 220],
       spell: [330, 0.18, 'sine', 0.12, 440], heal: [520, 0.25, 'sine', 0.1, -120],
+      impact: [125, 0.22, 'triangle', 0.16, -75],
       place: [240, 0.12, 'square', 0.08, 100], boss: [72, 0.5, 'sawtooth', 0.14, -20],
       victory: [440, 0.6, 'triangle', 0.13, 440], hurt: [110, 0.12, 'square', 0.12, -50]
     };

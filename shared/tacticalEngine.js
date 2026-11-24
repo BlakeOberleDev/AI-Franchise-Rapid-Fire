@@ -1,6 +1,7 @@
 import { AudioEngine } from './audioEngine.js';
 import { makeSprite, drawUnit } from './spriteGenerator.js';
 import { loadSave, writeSave } from './saveManager.js';
+import { getWaveScript } from './campaignScripts.js';
 
 const TROOP_ROSTERS = {
   1:['Flint-Spearmen','Torch-Bearers','Tunnel-Scouts'],2:['Liberated Miners','Arcane Initiates','Crystal-Slingers'],
@@ -35,7 +36,7 @@ const FINAL_BOSSES={
 };
 const STAGE_BOSSES={
   1:['Magma Matriarch','Flood-Gorge Leviathan','Gale-Crowned Roc','Tomb-Stone Guardian','The Unbound Convergence'],
-  2:['Pit Overseer','Iron-Forge Goliath','Blood-Spire Warlock','Citadel Reaver','Ascended Gildelal'],
+  2:['Pit Overseer','Iron-Forge Goliath','Blood-Spire Warlock','Citadel Reaver',['Gimelal the Apprentice','Deified Gildelal']],
   3:['Basalt Titan','Sky-Spire Tempest','Abyssal Tide Titan','Caldera Fire Titan',['Earth Titan','Air Titan','Water Titan','Fire Titan']],
   4:['Rift-Weaver Lord','Harethel’s Shadow','Temple Ash-Colossus','Rejuvenated Fire Entity','Lord Erebus'],
   5:['Cinder-Hound Alpha','Gatebreaker Brute','Mountain Pyre-Maw','Frost-Peak Warden','The Fire Entity'],
@@ -47,18 +48,26 @@ const STAGE_BOSSES={
   11:['Rift Sentinel','Frost-Fire Chimera','Horizon Warden','Fourfold Horror','The Maelstrom Amalgam'],
   13:['Void Knight Captain','Erebus’s Executioner','Four-Crystal Devourer','Orb Seeker','Void Siege Herald','The Combined Arcane-Elemental Entity']
 };
+const MAP_PATHS=[
+  [[[-20,270],[180,270],[310,140],[520,140],[660,320],[990,320]]],
+  [[[-20,120],[210,120],[370,270],[590,270],[760,410],[990,410]],[[-20,420],[200,420],[360,280],[580,280],[770,120],[990,120]]],
+  [[[-20,170],[180,170],[320,340],[520,340],[690,180],[990,180]],[[-20,370],[190,370],[360,210],[570,210],[730,370],[990,370]]],
+  [[[-20,260],[170,260],[320,120],[500,120],[660,260],[830,260],[990,420]]],
+  [[[-20,110],[200,110],[340,220],[510,220],[660,110],[820,110],[990,270]],[[-20,430],[200,430],[340,320],[510,320],[660,430],[820,430],[990,270]]],
+  [[[-20,270],[170,120],[340,270],[510,420],[680,270],[820,120],[990,270]]]
+];
 
 export class TacticalEngine {
   constructor(canvas, data, overrides = {}) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.data = data; this.overrides = overrides;
     this.audio = new AudioEngine(); this.save = loadSave(); this.running = false; this.paused = false;
     this.selected = new Set(); this.units = []; this.enemies = []; this.towers = []; this.effects = [];
-    this.stageIndex = 0; this.wave = 0; this.waveTimer = 2; this.waveGold = 300;
+    this.stageIndex = 0; this.wave = 0; this.waveTimer = 2; this.waveGold = 300;this.waveSpawnIndex=0;
     this.elapsed = 0; this.cataclysmTimer = 35; this.drag = null; this.speed = 1;
     this.towerTypes = data.towers || []; this.heroes = data.heroes || [];
     this.troopCooldown = 0; this.lastTime = 0; this.modalOpen = false;
     this.signature = Object.values(data.mechanics||overrides).find(value=>typeof value==='string')||SIGNATURE_MECHANICS[data.id]||'Squad tactics · Position your team and adapt to the enemy formation.';
-    this.warning=null;this.mechanicTimer=data.id===1?35:data.id===11?30:18;this.phaseTimer=30;this.phase=0;this.orbCharge=0;this.nodeTimer=0;
+    this.warning=null;this.mechanicTimer=data.id===1?35:data.id===11?30:18;this.phaseTimer=30;this.phase=0;this.orbCharge=0;this.nodeTimer=0;this.hazardPhase=0;
   }
   async boot() {
     this.audio.init(); this.audio.setVolumes(this.save.settings); this.audio.startMusic(this.data.id || 1);
@@ -128,11 +137,14 @@ export class TacticalEngine {
   loadStage(index, heroes, towerTypes) {
     this.stageIndex=index; const stage=this.data.stages[index];
     this.units=[]; this.enemies=[]; this.towers=[]; this.effects=[]; this.wave=0; this.waveTimer=3;
-    this.defeatTimer=0; this.elapsed=0; this.troopCooldown=0; this.lastTime=0;this.score=0;
-    this.warning=null;this.mechanicTimer=this.data.id===1?35:this.data.id===11?30:18;this.phaseTimer=30;this.phase=0;
+    this.defeatTimer=0; this.elapsed=0; this.troopCooldown=0; this.lastTime=0;this.score=0;this.waveSpawnIndex=0;
+    this.warning=null;this.mechanicTimer=this.data.id===1?35:this.data.id===11?30:18;this.phaseTimer=30;this.phase=0;this.hazardPhase=0;
+    this.escort=null;this.currentWaveObjective=null;
+    this.stagePaths=stage.paths||MAP_PATHS[(this.data.id+index-1)%MAP_PATHS.length];
     this.nodes=this.data.id===2?[[330,185],[630,350]].map((p,i)=>({x:p[0],y:p[1],owner:0,id:i})): [];
     this.anchors=this.data.id===3?(stage.pads||[]).slice(0,index===4?4:3).map((p,i)=>({x:p[0],y:p[1],charge:0,id:i})): [];
-    this.drainCharge=0;
+    this.drainCharge=0;this.orbCharge=0;
+    this.orbAnchors=this.data.id===13&&index===5?[{x:260,y:105,charge:0,name:'LIGHT'},{x:260,y:435,charge:0,name:'DARK'}]:[];
     heroes.forEach((h,i)=>this.units.push(this.makeUnit(h,'hero',90,100+i*55)));
     const roster=this.data.troops||TROOP_ROSTERS[this.data.id]||['Front Guard','Ranged Line','Shield Scout'];
     for(let i=0;i<3;i++){const troop=roster[i%roster.length];this.units.push(this.makeUnit({name:typeof troop==='string'?troop:troop.name,hp:70,color:['#85b6a2','#dfbd77','#82a9d8'][i],dark:'#35514b',role:'troop'},'troop',55,135+i*70));}
@@ -218,11 +230,16 @@ export class TacticalEngine {
     const pause=this.hud.querySelector('[data-action="pause"]');if(pause)pause.textContent=this.paused?'▶ Resume':'Ⅱ Pause';
     const speed=this.hud.querySelector('[data-action="speed"]');if(speed)speed.textContent=`${this.speed}× Speed`;
     const troops=this.hud.querySelector('[data-action="troops"]');if(troops)troops.disabled=this.troopCooldown>0;
-    const cd=this.hud.querySelector('.cooldown-text');if(cd)cd.textContent=this.troopCooldown>0?`Reinforcements ${Math.ceil(this.troopCooldown)}s`:`Gold ${this.waveGold}${this.data.id===13&&this.stageIndex===5?` · Orb ${Math.floor(this.orbCharge)}%`:''}`;
+    const cd=this.hud.querySelector('.cooldown-text');
+    if(cd)cd.textContent=this.troopCooldown>0?`Reinforcements ${Math.ceil(this.troopCooldown)}s`:`Gold ${this.waveGold}${this.orbAnchors.length?` · Orbs ${this.orbAnchors.map(a=>`${a.name[0]}${Math.floor(a.charge)}`).join('/')}`:''}`;
     const objective=this.hud.querySelector('.objective-text');
     if(objective){
       if(this.data.id===3)objective.textContent=`Crystals ${this.anchors.filter(a=>a.charge>=100).length}/${this.anchors.length}`;
       else if(this.data.id===6&&this.stageIndex===4)objective.textContent=`Divinity drain ${Math.floor(this.drainCharge)}%`;
+      else if(this.orbAnchors.length)objective.textContent=this.getAvailableEndings().length?`Ending ready: ${this.getAvailableEndings().join(' · ')}`:'Move allies onto both Orb altars to channel a resolution';
+      else if(this.escort)objective.textContent=`Escort integrity ${Math.ceil(this.escort.hp)}% · ${Math.floor(this.escort.progress/960*100)}%`;
+      else if(this.data.id===2)objective.textContent=`Crystal veins ${this.nodes.filter(n=>n.owner>.5).length}/${this.nodes.length} · control drains cooldowns`;
+      else if(this.currentWaveObjective)objective.textContent=this.currentWaveObjective;
       else objective.textContent='';
     }
     this.hud.querySelectorAll('[data-skill]').forEach((b,i)=>b.disabled=this.selected.size===0||[...this.selected].every(u=>u.cooldown>0));
@@ -257,24 +274,48 @@ export class TacticalEngine {
   }
   spawnWave() {
     const stage=this.data.stages[this.stageIndex];
-    const count=5+this.wave*2+(stage.difficulty||1);
-    for(let i=0;i<count;i++){
-      const enemy=(this.data.enemies||[{name:'Raider',hp:70,color:'#c44'}])[i%(this.data.enemies?.length||1)];
-      this.enemies.push({...this.makeUnit({...enemy,kind:'enemy',speed:enemy.speed||35},'enemy',this.canvas.width-30,80+(i%7)*52),
-        hp:(enemy.hp||70)*(1+this.wave*.08),maxHp:(enemy.hp||70)*(1+this.wave*.08),role:enemy.role||'shredder',
-        attackCd:1.2+Math.random(),windup:0,telegraph:null,slow:0,bound:0,attackCount:0});
+    const script=stage.waves?.[this.wave]||getWaveScript(this.data.id,this.stageIndex,this.wave,stage,this.data.enemies);
+    const roster=this.data.enemies||[{name:'Raider',hp:70,color:'#c44'}];
+    const pattern=script.pattern||defaults[this.wave]||'push';
+    const lane=(index,total)=>total<=1?270:80+(index%(total)*460/(total-1));
+    const addEnemy=(definition,position,scale=1,boss=false)=>{
+      const enemy={...definition};
+      const hp=Math.round((enemy.hp||70)*scale);
+      this.enemies.push({...this.makeUnit({...enemy,kind:'enemy',speed:enemy.speed||35},'enemy',position.x,position.y),
+        hp,maxHp:hp,role:enemy.role||'shredder',attackCd:1.2+Math.random(),windup:0,telegraph:null,slow:0,bound:0,attackCount:0,
+        boss,bossPhase:1,spawnLane:position.y,spawnSide:position.side});
+    };
+    if(pattern==='escort'){
+      const count=script.count||7,escortX=220+this.wave*62;
+      for(let i=0;i<count;i++)addEnemy(roster[(i+this.wave)%roster.length],{x:this.canvas.width-28-(i%3)*16,y:lane(i,count),side:1},1+this.wave*.08);
+      this.escort={x:escortX,hp:Math.max(0,100-this.wave*12),maxHp:100,progress:escortX};
+    }else{
+      const count=script.count||5+this.wave*2+(stage.difficulty||1),formation=script.formation||pattern;
+      for(let i=0;i<count;i++){
+        const definition=roster[(i+this.wave)%roster.length],side=formation==='flank'&&i%2===1?-1:1;
+        const x=side<0?28:this.canvas.width-30;
+        const y=formation==='column'?270+(i%2?1:-1)*Math.floor(i/2)*34:formation==='split'?lane(i,count):lane(i,count);
+        addEnemy(definition,{x,y,side},(script.hpScale||1));
+      }
     }
-    if(this.wave===4){
-      const stageBoss=this.data.stages[this.stageIndex].boss;
-      const names=stageBoss?[stageBoss]:STAGE_BOSSES[this.data.id]?.[this.stageIndex]||[FINAL_BOSSES[this.data.id]||`${this.data.title} Warlord`];
+    for(let i=0;i<(script.elites||[]).length;i++){
+      const elite=typeof script.elites[i]==='number'?roster[script.elites[i]%roster.length]:script.elites[i];
+      addEnemy(elite,{x:this.canvas.width-48,y:140+i*120,side:1},script.eliteHp||1.7);
+    }
+    this.currentWaveObjective=script.objective||null;
+    if(script.boss){
+      const stageBoss=this.data.stages[this.stageIndex].boss||STAGE_BOSSES[this.data.id]?.[this.stageIndex]||FINAL_BOSSES[this.data.id]||`${this.data.title} Warlord`;
+      const names=Array.isArray(stageBoss)?stageBoss:[stageBoss];
       names.forEach((name,i)=>{
-        const hp=this.data.id===13&&this.stageIndex===5?1400:names.length>1?520:580+(stage.difficulty||1)*95;
+        const hp=this.data.id===13&&this.stageIndex===5?1400:this.data.id===2&&this.stageIndex===4&&i===1?1120:names.length>1?560:580+(stage.difficulty||1)*95;
         const boss={name,hp,color:'#e2a36f'};
         this.enemies.push({...this.makeUnit({...boss,speed:names.length>1?20:22},'enemy',this.canvas.width-55,this.canvas.height/(names.length+1)*(i+1)),
-          hp,maxHp:hp,role:'cleaver',boss:true,bossPhase:1,attackCd:2+i*.35,windup:0,telegraph:null,slow:0,bound:0,attackCount:0});
+          hp,maxHp:hp,role:'cleaver',boss:true,bossPhase:1,attackCd:2+i*.35,windup:0,telegraph:null,slow:0,bound:0,attackCount:0,
+          escapesAt:this.data.id===2&&this.stageIndex===4&&/Gimelal/i.test(name) ? .15 : null});
       });
       this.audio.sfx('boss');
     }
+    this.waveSpawnIndex=this.wave;
     this.wave++;
   }
   loop(t) {
@@ -287,9 +328,14 @@ export class TacticalEngine {
   update(dt) {
     this.elapsed+=dt;
     this.troopCooldown=Math.max(0,this.troopCooldown-dt);
-    if(this.wave===0||this.enemies.length===0){
+    if((this.wave===0||this.enemies.length===0)&&!this.escort){
       this.waveTimer-=dt;
       if(this.waveTimer<=0&&this.wave<5){this.spawnWave();this.waveTimer=2.2;}
+    }
+    if(this.escort){
+      if(this.enemies.length===0)this.escort.progress+=dt*95;
+      if(this.escort.progress>=this.canvas.width-90)this.escort=null;
+      else if(this.escort.hp<=0){this.finish(false);return;}
     }
     for(const u of this.units){
       if(u.respawn>0){u.respawn-=dt;if(u.respawn<=0){u.hp=u.maxHp;u.x=90;u.y=200;}continue;}
@@ -306,30 +352,43 @@ export class TacticalEngine {
         const drainLocked=this.data.id===6&&this.stageIndex===4&&foe.boss&&this.drainCharge<100;
         const phaseBonus=this.data.id===11&&this.phase===0?1.25:1;
         const frostBonus=this.data.id===5&&foe.slow>0?1.3:1;
-        const damage=drainLocked?0:u.damage*phaseBonus*frostBonus,alive=foe.hp>0;foe.hp-=damage;u.attackCd=u.kind==='hero' ? .9 : 1.35;u.attackAnim=.22;
+        const damage=drainLocked?0:u.damage*phaseBonus*frostBonus;foe.hp-=damage;u.attackCd=u.kind==='hero' ? .9 : 1.35;u.attackAnim=.22;
         this.effects.push({kind:u.range>130?'projectile':'slash',x:(foe.x+u.x)/2,y:(foe.y+u.y)/2,fromX:u.x,fromY:u.y,life:.2,color:u.color||'#fff'});
-        if(alive&&foe.hp<=0){this.waveGold+=foe.boss?150:12;this.score=(this.score||0)+(foe.boss?1000:100);if(this.data.id===13)this.orbCharge=Math.min(100,this.orbCharge+15);}
       }
     }
     for(const e of this.enemies){
       e.attackCd=Math.max(0,(e.attackCd||0)-dt);
       e.slow=Math.max(0,(e.slow||0)-dt);e.bound=Math.max(0,(e.bound||0)-dt);
+      if(e.escapesAt&&e.hp>0&&e.hp/e.maxHp<=e.escapesAt){
+        e.hp=0;e.escaped=true;this.effects.push({kind:'ring',x:e.x,y:e.y,r:95,max:140,color:'#a372dc',life:1});
+        continue;
+      }
       if(e.hp<=0)continue;
+      const overseerPowered=this.data.id===2&&this.nodes.some(node=>node.owner<-.5&&Math.hypot(e.x-node.x,e.y-node.y)<85);
       if(e.boss){
         const phase=e.hp/e.maxHp>.66?1:e.hp/e.maxHp>.33?2:3;
         if(phase!==e.bossPhase){e.bossPhase=phase;this.effects.push({kind:'ring',x:e.x,y:e.y,r:80,max:100,color:'#f2c56f',life:.8});}
       }
+      if(this.escort&&e.x<=this.escort.progress+34){
+        if(e.attackCd<=0){this.escort.hp-=e.boss?8:4;e.attackCd=e.boss?1.5:1.1;this.effects.push({kind:'impact',x:this.escort.progress,y:this.escort.y,r:30,life:.3});}
+        continue;
+      }
       const living=this.units.filter(u=>u.respawn<=0);
-      let target=e.role==='diver'?living.filter(u=>u.role==='Healer'||u.role==='Mage'||u.role==='Ranger'||u.role==='Archer').sort((a,b)=>Math.hypot(a.x-e.x,a.y-e.y)-Math.hypot(b.x-e.x,b.y-e.y))[0]:null;
+      let target=e.role==='diver'?living.filter(u=>/healer|cleric|mage|ranger|archer/i.test(u.role)).sort((a,b)=>Math.hypot(a.x-e.x,a.y-e.y)-Math.hypot(b.x-e.x,b.y-e.y))[0]:null;
       if(!target)target=living.sort((a,b)=>Math.hypot(a.x-e.x,a.y-e.y)-Math.hypot(b.x-e.x,b.y-e.y))[0];
       if(target){
         const d=Math.hypot(target.x-e.x,target.y-e.y);
-        const speed=e.bound>0?0:e.speed*(e.slow>0 ? .55 : 1);
+        const speed=e.bound>0?0:e.speed*(e.slow>0 ? .55 : 1)*(overseerPowered?1.28:1);
         if(e.windup>0) {
           e.windup-=dt;
           if(e.windup<=0){
-            const hitRadius=e.role==='cleaver'?82:48;
-            this.units.filter(u=>u.respawn<=0&&Math.hypot(u.x-e.aimX,u.y-e.aimY)<hitRadius).forEach(u=>{const armor=Math.min(.75,(u.armor||0)+(this.data.id===11&&this.phase===2 ? .2 : 0));u.hp-=(e.boss?42+(e.bossPhase||1)*8:28)*(1-armor);u.target=null;});
+            const hitRadius=e.boss?e.bossRadius||82:e.role==='cleaver'?82:48;
+            this.units.filter(u=>{
+              if(u.respawn>0)return false;
+              if(e.telegraph==='stampede')return Math.abs(u.y-e.aimY)<42;
+              if(e.telegraph==='surge')return Math.abs(u.x-e.aimX)<48;
+              return Math.hypot(u.x-e.aimX,u.y-e.aimY)<hitRadius;
+            }).forEach(u=>{const armor=Math.min(.75,(u.armor||0)+(this.data.id===11&&this.phase===2 ? .2 : 0));u.hp-=(e.boss?42+(e.bossPhase||1)*8:28)*(overseerPowered?1.35:1)*(1-armor);u.target=null;});
             this.effects.push({kind:'impact',x:e.aimX,y:e.aimY,r:hitRadius,life:.35});
             e.telegraph=null;e.attackCd=e.boss?Math.max(1.25,2.5-(e.bossPhase||1)*.35):1.7;
           }
@@ -337,16 +396,22 @@ export class TacticalEngine {
           if(e.bound<=0){e.x+=(target.x-e.x)/d*speed*dt;e.y+=(target.y-e.y)/d*speed*dt;}
         } else if(e.attackCd<=0) {
           if(e.role==='cleaver'||e.role==='caster'||e.boss){
-            e.aimX=target.x;e.aimY=target.y;e.windup=e.boss?1.5:1.25;e.telegraph=e.role==='cleaver'||e.boss?'circle':'line';
+            e.aimX=target.x;e.aimY=target.y;e.windup=e.boss?1.5:1.25;
+            if(e.boss){
+              const attack=(e.attackCount+++(e.bossPhase||1))%3;
+              e.telegraph=this.data.id===8||this.data.id===1&&attack===1?'stampede':this.data.id===9||this.data.id===10&&attack===2?'surge':'circle';
+              e.bossRadius=this.data.id===3?115:this.data.id===13?105:82;
+            }else e.telegraph=e.role==='cleaver'?'circle':'line';
           } else {
             const armor=Math.min(.75,(target.armor||0)+(this.data.id===11&&this.phase===2 ? .2 : 0));
-            const damage=e.role==='shredder'?17:11;target.hp-=damage*(1-armor);e.attackCd=e.role==='shredder' ? .6 : 1.05;this.audio.sfx('hurt');
+            const damage=e.role==='shredder'?17:11;target.hp-=damage*(overseerPowered?1.35:1)*(1-armor);e.attackCd=e.role==='shredder' ? .6 : 1.05;this.audio.sfx('hurt');
           }
         }
       }
     }
     this.applyTowerAuras(dt);
     this.applyMechanics(dt);
+    this.awardEnemyDefeats();
     for(const u of this.units)if(u.hp<=0&&u.respawn<=0){if(u.kind==='hero')u.respawn=18;u.hp=0;}
     const lostTroops=this.units.filter(u=>u.kind==='troop'&&u.hp<=0);
     lostTroops.forEach(u=>this.selected.delete(u));
@@ -375,6 +440,14 @@ export class TacticalEngine {
       }
     }
   }
+  awardEnemyDefeats() {
+    for(const enemy of this.enemies) {
+      if(enemy.hp>0||enemy.rewarded||enemy.escaped)continue;
+      enemy.rewarded=true;
+      this.waveGold+=enemy.boss?150:12;
+      this.score=(this.score||0)+(enemy.boss?1000:100);
+    }
+  }
   startWarning(kind,x,y,radius=105) {
     this.warning={kind,x,y,radius,delay:1.35,life:2.5,fired:false};
   }
@@ -390,14 +463,17 @@ export class TacticalEngine {
         const allies=this.units.filter(u=>u.kind!=='enemy'&&u.respawn<=0&&Math.hypot(u.x-node.x,u.y-node.y)<60).length;
         const foes=this.enemies.filter(e=>Math.hypot(e.x-node.x,e.y-node.y)<60).length;
         if(allies>foes)node.owner=Math.min(1,node.owner+dt*.22);
-        else if(foes>allies)node.owner=Math.max(0,node.owner-dt*.24);
+        else if(foes>allies)node.owner=Math.max(-1,node.owner-dt*.24);
+        if(node.owner>.5){
+          this.units.filter(u=>u.kind==='hero'&&Math.hypot(u.x-node.x,u.y-node.y)<80).forEach(u=>u.cooldown=Math.max(0,u.cooldown-dt*.3));
+        }
       }
       if(this.nodeTimer<=0){this.nodeTimer=1;for(const node of this.nodes)if(node.owner>.8)this.waveGold+=2;}
     }
     if(this.data.id===3){
       for(const anchor of this.anchors){
-        const allies=this.units.filter(u=>u.kind!=='enemy'&&u.respawn<=0&&Math.hypot(u.x-anchor.x,u.y-anchor.y)<58).length;
-        const foes=this.enemies.filter(e=>Math.hypot(e.x-anchor.x,e.y-anchor.y)<62).length;
+        const allies=this.units.filter(u=>u.kind!=='enemy'&&u.respawn<=0&&u.hp>0&&Math.hypot(u.x-anchor.x,u.y-anchor.y)<58).length;
+        const foes=this.enemies.filter(e=>e.hp>0&&Math.hypot(e.x-anchor.x,e.y-anchor.y)<62).length;
         if(allies>0&&foes===0)anchor.charge=Math.min(100,anchor.charge+dt*(6+allies*2));
         else if(foes>0)anchor.charge=Math.max(0,anchor.charge-dt*3);
       }
@@ -409,6 +485,14 @@ export class TacticalEngine {
         const linkedTower=this.towers.some(t=>Math.hypot(t.x-boss.x,t.y-boss.y)<280);
         if(mage&&linkedTower)this.drainCharge=Math.min(100,this.drainCharge+dt*10);
       }
+    }
+    if(this.orbAnchors.length){
+      for(const anchor of this.orbAnchors){
+        const allies=this.units.filter(u=>u.kind!=='enemy'&&u.respawn<=0&&u.hp>0&&Math.hypot(u.x-anchor.x,u.y-anchor.y)<52).length;
+        const foes=this.enemies.filter(e=>e.hp>0&&Math.hypot(e.x-anchor.x,e.y-anchor.y)<58).length;
+        if(allies>0&&foes===0)anchor.charge=Math.min(100,anchor.charge+dt*(2+allies*1.5));
+      }
+      this.orbCharge=(this.orbAnchors[0].charge+this.orbAnchors[1].charge)/2;
     }
     if(this.data.id===4){
       this.phaseTimer-=dt;
@@ -428,20 +512,39 @@ export class TacticalEngine {
     if(kinds[this.data.id]){
       this.mechanicTimer-=dt;
       if(this.mechanicTimer<=0){
-        this.startWarning(kinds[this.data.id],180+Math.random()*600,115+Math.random()*310,this.data.id===8?80:105);
+        const x=180+Math.random()*600,y=115+Math.random()*310;
+        if(this.data.id===1){
+          this.hazardPhase=(this.hazardPhase+1)%4;
+          const safe=[{x:170,y:140},{x:790,y:140},{x:170,y:400},{x:790,y:400}][this.hazardPhase];
+          this.warning={kind:kinds[this.data.id],x,y,radius:180,delay:1.55,life:2.8,fired:false,safeX:safe.x,safeY:safe.y,safeRadius:95,phase:['MAGMA','FLOOD','GALE','STALACTITES'][this.hazardPhase]};
+        }else this.startWarning(kinds[this.data.id],x,y,this.data.id===8?80:105);
         this.mechanicTimer=this.data.id===1?35:this.data.id===7?24:this.data.id===8?18:this.data.id===9?20:16;
       }
     }
   }
   objectivesComplete() {
+    if(this.escort)return false;
     if(this.data.id===3)return this.anchors.length>0&&this.anchors.every(anchor=>anchor.charge>=100);
     if(this.data.id===6&&this.stageIndex===4)return this.drainCharge>=100;
+    if(this.orbAnchors.length)return this.getAvailableEndings().length>0;
     return true;
+  }
+  getAvailableEndings() {
+    if(!this.orbAnchors.length)return [];
+    const light=this.orbAnchors[0].charge,dark=this.orbAnchors[1].charge;
+    const flags=this.save.games[13].gameSpecificFlags||{};
+    const available=[];
+    if(flags.fourCrystalsCharged&&light>=70&&light<90&&dark>=70&&dark<90)available.push('A — Restoration');
+    if(light>=100&&dark>=100)available.push('B — The Eternal Cycle');
+    if(flags.harethelFreed&&this.units.some(u=>u.kind==='hero'&&/harethel/i.test(u.name))&&light>=100&&dark<=35)available.push('C — The Mentor’s Return');
+    const balanced=Math.abs(light-dark)<=10;
+    if(flags.orbsUnleashed&&balanced&&((light>=60&&light<70)||(light>=90&&light<100)))available.push('D — The Unified Orb');
+    return available;
   }
   resolveWarning(warning) {
     const near=unit=>Math.hypot(unit.x-warning.x,unit.y-warning.y)<warning.radius;
     if(warning.kind==='cataclysm'||warning.kind==='anomaly'){
-      this.units.filter(near).forEach(u=>u.hp-=warning.kind==='anomaly'?24:30);
+      this.units.filter(unit=>near(unit)&&!(warning.safeRadius&&Math.hypot(unit.x-warning.safeX,unit.y-warning.safeY)<warning.safeRadius)).forEach(u=>u.hp-=warning.kind==='anomaly'?24:30);
       if(warning.kind==='anomaly')this.enemies.filter(near).forEach(e=>e.hp-=25);
     }else if(warning.kind==='stampede'){
       this.units.filter(u=>Math.abs(u.y-warning.y)<38).forEach(u=>{u.hp-=34;u.target=null;u.x=Math.max(30,u.x-55);});
@@ -477,7 +580,7 @@ export class TacticalEngine {
         const ending=await this.chooseEnding();
         if(ending){
           game.endings=[...new Set([...(game.endings||[]),ending])];
-          game.gameSpecificFlags={...(game.gameSpecificFlags||{}),apocalypseEndings:game.endings,orbCharge:this.orbCharge};
+          game.gameSpecificFlags={...(game.gameSpecificFlags||{}),apocalypseEndings:game.endings,orbCharge:this.orbCharge,orbChannels:this.orbAnchors.map(anchor=>({name:anchor.name,charge:anchor.charge}))};
         }
       }
       game.unlockedCodexIds=[...new Set([...(game.unlockedCodexIds||[]),`game-${this.data.id}-stage-${this.stageIndex+1}`])];
@@ -491,21 +594,24 @@ export class TacticalEngine {
   }
   chooseEnding() {
     const endings=[
-      {id:'A — Restoration',title:'Restoration',text:'Balance the four Crystals. The Wellspring returns and banishes the Harbinger.'},
-      {id:'B — The Eternal Cycle',title:'The Eternal Cycle',text:'Overload both Orbs. The Emergence is consumed as Bloom and Void begin again.'},
-      {id:'C — The Mentor’s Return',title:'The Mentor’s Return',text:'Channel pure Light through Harethel; her mentor, the living Wellspring, returns.'},
-      {id:'D — The Unified Orb',title:'The Unified Orb',text:'Fuse Light and Dark. Harethel and the Twelve remain as guardians of the joined realms.'}
+    {id:'A — Restoration',title:'Restoration',text:'Balance both Orbs between 70% and 89% after charging all four Crystals.'},
+    {id:'B — The Eternal Cycle',title:'The Eternal Cycle',text:'Overcharge both Orbs to 100%.'},
+    {id:'C — The Mentor’s Return',title:'The Mentor’s Return',text:'Charge Light to 100%, keep Dark at or below 35%, and bring Harethel.'},
+    {id:'D — The Unified Orb',title:'The Unified Orb',text:'Keep both Orbs balanced at 60–69% or 90–99% after unleashing them.'}
     ];
+    const available=this.getAvailableEndings();
     return new Promise(resolve=>{
-      const panel=document.createElement('div');panel.className='ending-chooser';
-      panel.innerHTML='<div class="ending-panel"><span class="result-kicker">THE FINAL CHOICE</span><h1>What future will you leave?</h1><p>The One Entity has been split. Choose the fate of the Emergence.</p><div class="ending-options"></div></div>';
-      const options=panel.querySelector('.ending-options');
-      endings.forEach(ending=>{
-        const button=document.createElement('button');button.className='ending-option';
-        button.innerHTML=`<strong>${ending.id}</strong><span>${ending.text}</span>`;
-        button.onclick=()=>{this.endingText=ending.text;panel.remove();resolve(ending.id);};
-        options.appendChild(button);
-      });
+    const panel=document.createElement('div');panel.className='ending-chooser';
+    panel.innerHTML='<div class="ending-panel"><span class="result-kicker">THE FINAL CHOICE</span><h1>What future will you leave?</h1><p>The One Entity is defeated. Your Orb channels determine which futures can be chosen; replay the stage to pursue another.</p><div class="ending-options"></div></div>';
+    const options=panel.querySelector('.ending-options');
+    endings.forEach(ending=>{
+      const button=document.createElement('button');button.className='ending-option';
+      const unlocked=available.includes(ending.id);
+      button.disabled=!unlocked;
+      button.innerHTML=`<strong>${ending.id}${unlocked?' · READY':' · LOCKED'}</strong><span>${ending.text}</span>`;
+      button.onclick=()=>{this.endingText=ending.text;panel.remove();resolve(ending.id);};
+      options.appendChild(button);
+    });
       document.body.appendChild(panel);
     });
   }
@@ -523,15 +629,28 @@ export class TacticalEngine {
       c.fillStyle=this.towers[i]?'#f3d16f22':'#b9d8fa10';c.strokeStyle=this.towers[i]?'#f3d16f55':'#b9d8fa35';
       c.beginPath();c.roundRect(p[0]-24,p[1]-24,48,48,8);c.fill();c.stroke();
     });
-    c.strokeStyle='#7edcff38';c.lineWidth=5;c.beginPath();c.moveTo(20,h*.5);c.bezierCurveTo(w*.25,h*.5,w*.35,h*.32,w*.52,h*.5);c.bezierCurveTo(w*.68,h*.7,w*.8,h*.5,w-20,h*.5);c.stroke();
+    c.strokeStyle='#7edcff38';c.lineWidth=5;
+    for(const path of this.stagePaths||[]){
+      c.beginPath();path.forEach((point,i)=>{if(i===0)c.moveTo(point[0],point[1]);else c.lineTo(point[0],point[1]);});c.stroke();
+    }
     c.restore();
     c.fillStyle='#e7efff';c.font='700 13px Segoe UI,sans-serif';c.fillText(`${this.data.title.toUpperCase()}  ·  ${this.data.stages[this.stageIndex].name}`,18,23);
     c.fillStyle='#ffd47a';c.font='12px Segoe UI,sans-serif';c.fillText(`WAVE ${Math.min(this.wave+1,5)} / 5`,18,43);
+    if(this.currentWaveObjective){c.fillStyle='#d5c6ff';c.font='10px Segoe UI,sans-serif';c.fillText(this.currentWaveObjective,w*.5,43);}
+    if(this.escort){
+      c.fillStyle='#211325';c.fillRect(40,h-39,180,8);c.fillStyle='#75dfb1';c.fillRect(40,h-39,180*Math.max(0,this.escort.hp)/100,8);
+      c.fillStyle='#fff';c.font='10px Segoe UI,sans-serif';c.fillText(`ESCORT · ${Math.floor(this.escort.progress/960*100)}%`,40,h-45);
+      c.fillStyle='#f6d990';c.beginPath();c.arc(this.escort.progress,this.escort.y,13,0,Math.PI*2);c.fill();
+    }
     c.textAlign='right';c.fillText(`GOLD ${this.waveGold}   ·   ${this.speed}×`,w-18,23);c.textAlign='left';
     c.fillStyle='#b9c9e2';c.font='10px Segoe UI,sans-serif';c.fillText(this.signature,18,h-14);
     if(this.data.id===11){c.textAlign='center';c.fillStyle=['#ff946f','#8feeff','#d7c6a2','#c6a0ff'][this.phase];c.font='700 11px sans-serif';c.fillText(['FIRE FRONT','WATER FRONT','EARTH FRONT','AIR FRONT'][this.phase],w/2,24);c.textAlign='left';}
-    if(this.data.id===13&&this.stageIndex===5){c.fillStyle='#211325';c.fillRect(w*.35,51,w*.3,5);c.fillStyle='#f1d785';c.fillRect(w*.35,51,w*.3*this.orbCharge/100,5);}
-    for(const node of this.nodes||[]){c.save();c.fillStyle=node.owner>.8?'#f0d77b':'#8c72dd';c.globalAlpha=.5;c.beginPath();c.arc(node.x,node.y,29,0,Math.PI*2);c.fill();c.globalAlpha=1;c.strokeStyle='#fff9';c.stroke();c.fillStyle='#fff';c.font='9px sans-serif';c.textAlign='center';c.fillText(node.owner>.8?'VEIN HELD':'SIPHON NODE',node.x,node.y+40);c.restore();}
+    for(const anchor of this.orbAnchors||[]){
+      c.save();c.globalAlpha=.4;c.fillStyle=anchor.name==='LIGHT'?'#f1d785':'#bd85ef';c.beginPath();c.arc(anchor.x,anchor.y,36,0,Math.PI*2);c.fill();c.globalAlpha=1;
+      c.strokeStyle=anchor.name==='LIGHT'?'#fff1a4':'#e0b5ff';c.lineWidth=4;c.beginPath();c.arc(anchor.x,anchor.y,29,-Math.PI/2,-Math.PI/2+Math.PI*2*anchor.charge/100);c.stroke();
+      c.fillStyle='#fff';c.font='bold 10px sans-serif';c.textAlign='center';c.fillText(`${anchor.name} ORB ${Math.floor(anchor.charge)}%`,anchor.x,anchor.y+49);c.restore();
+    }
+    for(const node of this.nodes||[]){c.save();c.fillStyle=node.owner>.5?'#f0d77b':node.owner<-.5?'#e26f82':'#8c72dd';c.globalAlpha=.5;c.beginPath();c.arc(node.x,node.y,29,0,Math.PI*2);c.fill();c.globalAlpha=1;c.strokeStyle='#fff9';c.stroke();c.fillStyle='#fff';c.font='9px sans-serif';c.textAlign='center';c.fillText(node.owner>.5?'VEIN HELD':node.owner<-.5?'OVERSEER HELD':'SIPHON NODE',node.x,node.y+40);c.restore();}
     for(const anchor of this.anchors||[]){
       c.save();c.globalAlpha=.5;c.fillStyle='#8c72dd';c.beginPath();c.arc(anchor.x,anchor.y,31,0,Math.PI*2);c.fill();c.globalAlpha=1;
       c.strokeStyle='#e8d8ff';c.lineWidth=3;c.beginPath();c.arc(anchor.x,anchor.y,25,-Math.PI/2,-Math.PI/2+Math.PI*2*anchor.charge/100);c.stroke();
@@ -558,7 +677,7 @@ export class TacticalEngine {
     for(const e of this.enemies){
       if(e.windup>0&&e.telegraph){
         const pulse=1+Math.sin(this.elapsed*11)*.08;c.save();c.strokeStyle=this.save.settings.highContrast?'#fff':'#ff584f';c.fillStyle=this.save.settings.highContrast?'#fff2':'#ff393626';c.lineWidth=3;c.setLineDash([7,5]);
-        c.beginPath();if(e.telegraph==='circle'){c.arc(e.aimX,e.aimY,82*pulse,0,Math.PI*2);}else{c.moveTo(e.x,e.y);c.lineTo(e.aimX,e.aimY);}c.fill();c.stroke();c.setLineDash([]);c.restore();
+        c.beginPath();if(e.telegraph==='circle'){c.arc(e.aimX,e.aimY,(e.bossRadius||82)*pulse,0,Math.PI*2);}else if(e.telegraph==='stampede'){c.rect(25,e.aimY-42,w-50,84);}else if(e.telegraph==='surge'){c.rect(e.aimX-48,55,96,h-110);}else{c.moveTo(e.x,e.y);c.lineTo(e.aimX,e.aimY);}c.fill();c.stroke();c.setLineDash([]);c.restore();
         c.fillStyle='#fff';c.font='bold 11px sans-serif';c.fillText(`DODGE · ${e.windup.toFixed(1)}s`,e.aimX-36,e.aimY-90);
       }
       if(e.bound>0){c.strokeStyle='#a98aff';c.beginPath();c.arc(e.x,e.y,20,0,Math.PI*2);c.stroke();}
@@ -569,7 +688,8 @@ export class TacticalEngine {
     if(this.warning&&!this.warning.fired){
       c.save();c.globalAlpha=.55+.35*Math.sin(this.elapsed*12);c.strokeStyle=this.save.settings.highContrast?'#fff':'#ff514b';c.fillStyle=this.save.settings.highContrast?'#fff2':'#ff453622';c.lineWidth=3;c.setLineDash([8,5]);
       c.beginPath();if(this.warning.kind==='stampede'){c.rect(25,this.warning.y-38,w-50,76);}else c.arc(this.warning.x,this.warning.y,this.warning.radius,0,Math.PI*2);c.fill();c.stroke();c.setLineDash([]);
-      c.fillStyle='#fff';c.font='bold 11px sans-serif';c.textAlign='center';c.fillText(`${this.warning.kind.toUpperCase()} · ${this.warning.delay.toFixed(1)}s`,this.warning.x,this.warning.y-this.warning.radius-9);c.restore();c.textAlign='left';
+      if(this.warning.safeRadius){c.strokeStyle='#8effc5';c.fillStyle='#42ed9d22';c.beginPath();c.arc(this.warning.safeX,this.warning.safeY,this.warning.safeRadius,0,Math.PI*2);c.fill();c.stroke();}
+      c.fillStyle='#fff';c.font='bold 11px sans-serif';c.textAlign='center';c.fillText(`${this.warning.phase||this.warning.kind.toUpperCase()} · ${this.warning.delay.toFixed(1)}s`,this.warning.x,this.warning.y-this.warning.radius-9);c.restore();c.textAlign='left';
     }
     for(const f of this.effects){
       c.save();c.globalAlpha=Math.min(1,f.life*2);

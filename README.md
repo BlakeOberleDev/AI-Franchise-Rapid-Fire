@@ -28,9 +28,15 @@ On GitHub Pages, deploy the repository root. No build step or backend is require
 - Click a support tower to spend 50 gold and upgrade it (maximum tier 3).
 - Touch and pointer controls are supported.
 
+Tactical campaigns use authored wave formations, stage-specific lane paths, elite inserts, and boss waves. Some missions also add objectives such as convoy escort, crystal capture, or siphon-channeling.
+
 ## Rebirth
 
 - `WASD` / Arrow keys: move.
 - `1`-`4`: switch party leader.
 - `X`: attack.
+- `C`: use the current leader's unique skill.
 - `Z`: interact with crystals, scrolls, and Orb sanctums.
+- Interact at a campfire to heal and save a Rebirth checkpoint.
+
+Each Rebirth region now has its own authored gate puzzle: pressure plates, beam mirrors, ordered water valves, a Wren-only sky-bridge mechanism, or character-attuned Orbs. Defeat the local guardian before interacting with puzzle objects.
